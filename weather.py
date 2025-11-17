@@ -1,3 +1,4 @@
+import configparser
 import gzip
 import io
 import json
@@ -5,157 +6,160 @@ import urllib.request
 import urllib.parse
 import urllib.error
 
-API_KEY = "your_api_key"
-API_HOST = "your_api_host"
+class Weather:
+    def __init__(self, config_file: str = "weather_api.cfg"):
+        self.config_file = config_file
+        self.api_host, self.api_key = self._read_weather_config(config_file)
 
-def get_city_location(city_name):
-    geo_api_url = f"https://{API_HOST}/geo/v2/city/lookup"
+    def _read_weather_config(self, config_file: str) -> tuple:
+        config = configparser.ConfigParser()
+        config.read(config_file, encoding='utf-8')
 
-    params = {
-        'location': city_name,
-        'key': API_KEY,
-        'number': 1
-    }
-    url = f"{geo_api_url}?{urllib.parse.urlencode(params)}"
+        api_section = config['weather_api']
+        api_host = api_section['api_host']
+        api_key = api_section['api_key']
 
-    try:
-        req = urllib.request.Request(url)
-        req.add_header('X-QW-Api-Key', API_KEY)
-        req.add_header('Accept-Encoding', 'gzip')
+        return api_host, api_key
 
-        with urllib.request.urlopen(req) as response:
-            data = response.read()
-            # 解压Gzip
-            with gzip.GzipFile(fileobj=io.BytesIO(data)) as gzip_file:
-                decompressed_data = gzip_file.read().decode('utf-8')
+    def _make_api_request(self, url: str) -> dict | None:
+        try:
+            req = urllib.request.Request(url)
+            req.add_header('X-QW-Api-Key', self.api_key)
+            req.add_header('Accept-Encoding', 'gzip')
 
-            geo_data = json.loads(decompressed_data)
+            with urllib.request.urlopen(req) as response:
+                data = response.read()
+                # 解压Gzip
+                with gzip.GzipFile(fileobj=io.BytesIO(data)) as gzip_file:
+                    decompressed_data = gzip_file.read().decode('utf-8')
 
-            if geo_data.get('code') == '200':
-                location_id = geo_data['location'][0]['id']
-                city_name_found = geo_data['location'][0]['name']
-                print(f"找到城市: {city_name_found}, Location ID: {location_id}")
-                return location_id
-            else:
-                print(f"城市查询失败: {geo_data.get('message', '未知错误')}")
-                return None
+                return json.loads(decompressed_data)
 
-    except urllib.error.HTTPError as e:
-        print(f"HTTP错误 {e.code}: {e.reason}")
-        print("请检查: 1. API_HOST是否正确 2. API Key是否有效")
-        return None
-    except Exception as e:
-        print(f"在查询城市ID时发生错误: {e}")
-        return None
+        except Exception as e:
+            print(f"API请求失败: {e}")
+            return None
 
-def get_weather_forecast(location_id, forecast_days=3):
-    """
-    根据Location ID获取天气预报 - 处理gzip压缩响应
-    """
-    day_to_api = {
-        3: '3d',
-        7: '7d',
-        10: '10d',
-        15: '15d'
-    }
+    def _get_city_location(self, city_name: str) -> str | None:
+        geo_api_url = f"https://{self.api_host}/geo/v2/city/lookup"
 
-    if forecast_days not in day_to_api:
-        print(f"不支持的预报天数: {forecast_days}")
-        return None
+        params = {
+            'location': city_name,
+            'key': self.api_key,
+            'number': 1
+        }
+        url = f"{geo_api_url}?{urllib.parse.urlencode(params)}"
 
-    api_path = day_to_api[forecast_days]
-    weather_api_url = f"https://{API_HOST}/v7/weather/{api_path}"
+        geo_data = self._make_api_request(url)
 
-    params = {
-        'location': location_id,
-        'key': API_KEY,
-        'lang': 'zh',
-        'unit': 'm'
-    }
-    url = f"{weather_api_url}?{urllib.parse.urlencode(params)}"
+        if geo_data and geo_data.get('code') == '200':
+            location_id = geo_data['location'][0]['id']
+            city_name_found = geo_data['location'][0]['name']
+            print(f"找到城市: {city_name_found}, Location ID: {location_id}")
+            return location_id
+        else:
+            print(f"城市查询失败: {geo_data.get('message', '未知错误') if geo_data else '请求失败'}")
+            return None
 
-    try:
-        # 创建请求对象，并添加认证头和接受gzip编码
-        req = urllib.request.Request(url)
-        req.add_header('X-QW-Api-Key', API_KEY)
-        req.add_header('Accept-Encoding', 'gzip')  # 声明接受gzip压缩
+    def _get_weather_forecast(self, location_id: str, forecast_days: int = 3) -> dict | None:
+        day_to_api = {
+            3: '3d',
+            7: '7d',
+            10: '10d',
+            15: '15d'
+        }
 
-        with urllib.request.urlopen(req) as response:
-            data = response.read()
-            # 解压Gzip
-            with gzip.GzipFile(fileobj=io.BytesIO(data)) as gzip_file:
-                decompressed_data = gzip_file.read().decode('utf-8')
+        if forecast_days not in day_to_api:
+            print(f"不支持的预报天数: {forecast_days}")
+            return None
 
-            weather_data = json.loads(decompressed_data)
+        api_path = day_to_api[forecast_days]
+        weather_api_url = f"https://{self.api_host}/v7/weather/{api_path}"
 
-            if weather_data.get('code') == '200':
-                return weather_data
-            else:
-                print(f"天气查询失败: {weather_data.get('message', '未知错误')}")
-                return None
+        params = {
+            'location': location_id,
+            'key': self.api_key,
+            'lang': 'zh',
+            'unit': 'm'
+        }
+        url = f"{weather_api_url}?{urllib.parse.urlencode(params)}"
 
-    except Exception as e:
-        print(f"在获取天气数据时发生错误: {e}")
-        return None
+        weather_data = self._make_api_request(url)
 
-def get_weather_data(city_name, forecast_days=3):
-    """
-    根据城市名称获取天气数据
+        if weather_data and weather_data.get('code') == '200':
+            return weather_data
+        else:
+            print(f"天气查询失败: {weather_data.get('message', '未知错误') if weather_data else '请求失败'}")
+            return None
 
-    Args:
-        city_name (str): 城市名称
-        forecast_days (int): 预报天数，支持 3、7、10、15 天
+    def get_weather_data(self, city_name: str, forecast_days: int = 3) -> dict | None:
+        """
+        根据城市名称获取天气数据
 
-    Returns:
-        dict: 天气数据包，如果获取失败则返回 None
-    """
-    print(f"正在查询 {city_name} 的天气信息...")
+        Args:
+            city_name: 城市名称
+            forecast_days: 预报天数，支持 3、7、10、15 天
 
-    # 获取城市Location ID
-    location_id = get_city_location(city_name)
+        Returns:
+            dict: 天气数据包，如果获取失败则返回 None
+        """
+        print(f"正在查询 {city_name} 的天气信息...")
 
-    if not location_id:
-        print("无法获取城市Location ID")
-        return None
+        # 获取城市 Location ID
+        location_id = self._get_city_location(city_name)
 
-    # 获取天气预报
-    weather_data = get_weather_forecast(location_id, forecast_days)
+        if not location_id:
+            print("无法获取城市Location ID")
+            return None
 
-    if weather_data:
-        return weather_data
-    else:
-        print("无法获取天气信息")
-        return None
+        # 获取天气预报
+        weather_data = self._get_weather_forecast(location_id, forecast_days)
 
-# 调试信息
-def display_weather_info(weather_data):
-    if not weather_data:
-        return
+        if weather_data:
+            return weather_data
+        else:
+            print("无法获取天气信息")
+            return None
 
-    print(f"\n=== 天气预报 ===")
-    print(f"数据更新时间: {weather_data.get('updateTime', '未知')}")
+    def display_weather_info(self, weather_data: dict) -> None:
+        """
+        显示天气信息（用于调试）
 
-    if 'now' in weather_data:
-        # 实时天气
-        now = weather_data['now']
-        print(f"\n【实时天气】")
-        print(f"天气状况: {now.get('text', '未知')}")
-        print(f"当前温度: {now.get('temp', '未知')}°C")
-        print(f"体感温度: {now.get('feelsLike', '未知')}°C")
-        print(f"湿度: {now.get('humidity', '未知')}%")
-        print(f"风向: {now.get('windDir', '未知')}")
-        print(f"风力: {now.get('windScale', '未知')}级")
+        Args:
+            weather_data: 天气数据字典
+        """
+        if not weather_data:
+            return
 
-    if 'daily' in weather_data:
-        # 预报天气
-        print(f"\n【未来预报】")
-        for i, day in enumerate(weather_data['daily'][:3]):  # 显示前3天
-            print(f"第{i + 1}天: {day.get('fxDate', '未知')}")
-            print(f"  白天: {day.get('textDay', '未知')} | 夜间: {day.get('textNight', '未知')}")
-            print(f"  温度: {day.get('tempMin', '未知')}°C ~ {day.get('tempMax', '未知')}°C")
+        print(f"\n=== 天气预报 ===")
+        print(f"数据更新时间: {weather_data.get('updateTime', '未知')}")
+
+        if 'now' in weather_data:
+            now = weather_data['now']
+            print(f"\n【实时天气】")
+            print(f"天气状况: {now.get('text', '未知')}")
+            print(f"当前温度: {now.get('temp', '未知')}°C")
+            print(f"体感温度: {now.get('feelsLike', '未知')}°C")
+            print(f"湿度: {now.get('humidity', '未知')}%")
+            print(f"风向: {now.get('windDir', '未知')}")
+            print(f"风力: {now.get('windScale', '未知')}级")
+
+        if 'daily' in weather_data:
+            print(f"\n【未来预报】")
+            for i, day in enumerate(weather_data['daily'][:3]):
+                print(f"第{i + 1}天: {day.get('fxDate', '未知')}")
+                print(f"  白天: {day.get('textDay', '未知')} | 夜间: {day.get('textNight', '未知')}")
+                print(f"  温度: {day.get('tempMin', '未知')}°C ~ {day.get('tempMax', '未知')}°C")
 
 if __name__ == "__main__":
-    city_name = "北京"
-    weather_data = get_weather_data(city_name, 3)
+    # 创建天气查询实例
+    weather = Weather()
 
-    display_weather_info(weather_data)
+    # 获取天气数据
+    city_name = "北京"
+    weather_data = weather.get_weather_data(city_name, 3)
+
+    # 显示天气信息
+    if weather_data:
+        weather.display_weather_info(weather_data)
+    else:
+        print("天气查询失败")
