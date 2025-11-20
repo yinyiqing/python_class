@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>酒店管理系统</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- 主界面 -->
+    <div class="main-container">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2><i class="fas fa-hotel" style="color: var(--accent);"></i> <span>酒店管理系统</span></h2>
+            </div>
+            <ul class="nav-links">
+                <li><a href="/dashboard?username={{ request.args.get('username', '') }}"><i class="fas fa-tachometer-alt"></i> <span>仪表盘</span></a></li>
+                <li><a href="/employees?username={{ request.args.get('username', '') }}"><i class="fas fa-users"></i> <span>员工管理</span></a></li>
+                <li><a href="/rooms?username={{ request.args.get('username', '') }}"><i class="fas fa-bed"></i> <span>客房管理</span></a></li>
+                <li><a href="/customers?username={{ request.args.get('username', '') }}"><i class="fas fa-user-tie"></i> <span>客户管理</span></a></li>
+                <li><a href="/orders?username={{ request.args.get('username', '') }}" class="active"><i class="fas fa-clipboard-list"></i> <span>订单管理</span></a></li>
+                <li><a href="/analytics?username={{ request.args.get('username', '') }}"><i class="fas fa-chart-bar"></i> <span>数据统计</span></a></li>
+                <li><a href="/weather?username={{ request.args.get('username', '') }}"><i class="fas fa-cloud-sun"></i> <span>天气显示</span></a></li>
+                <li><a href="/" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> <span>退出登录</span></a></li>
+            </ul>
+        </div>
+
+        <div class="content">
+            <div class="header">
+                <h1 style="font-size: 24px; font-weight: 600;">订单管理</h1>
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar">AD</div>
+                    <div class="user-details">
+                        <div class="user-name" id="userName" style="font-weight: 600;">管理员</div>
+                        <div class="user-role" style="font-size: 12px; color: var(--gray-light);">系统管理员</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 订单管理内容 -->
+            <div class="content-section">
+                <div style="text-align: center; padding: 60px;">
+                    <i class="fas fa-clipboard-list" style="font-size: 64px; color: var(--accent); margin-bottom: 20px;"></i>
+                    <h2 style="margin-bottom: 15px; color: var(--light);">订单管理</h2>
+                    <p style="color: var(--gray-light); font-size: 16px; margin-bottom: 30px;">此功能正在开发中</p>
+                    <div style="display: inline-block; padding: 10px 20px; background: rgba(0, 198, 255, 0.1); border-radius: 8px; color: var(--accent);">
+                        <i class="fas fa-tools"></i> 开发中
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 初始化页面
+        document.addEventListener('DOMContentLoaded', function() {
+            // 显示主容器
+            const mainContainer = document.querySelector('.main-container');
+            if (mainContainer) {
+                mainContainer.style.display = 'flex';
+            }
+
+            // 从登录页面获取用户名并更新显示
+            updateUserInfo();
+
+            // 绑定退出登录事件
+            document.getElementById('logoutBtn').addEventListener('click', function(e) {
+                e.preventDefault();
+                window.location.href = '/?logout=true';
+            });
+        });
+
+        // 更新用户信息
+        function updateUserInfo() {
+            // 尝试从URL参数获取用户名
+            const urlParams = new URLSearchParams(window.location.search);
+            const username = urlParams.get('username') || '管理员';
+
+            // 更新用户名显示
+            document.getElementById('userName').textContent = username;
+
+            // 更新头像显示（取前两个字符）
+            const avatar = document.getElementById('userAvatar');
+            avatar.textContent = username.substring(0, 2).toUpperCase();
+        }
+    </script>
+</body>
+</html>
