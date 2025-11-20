@@ -15,14 +15,14 @@
                 <h2><i class="fas fa-hotel" style="color: var(--accent);"></i> <span>酒店管理系统</span></h2>
             </div>
             <ul class="nav-links">
-                <li><a href="/dashboard?username={{ request.args.get('username', '') }}"><i class="fas fa-tachometer-alt"></i> <span>仪表盘</span></a></li>
-                <li><a href="/employees?username={{ request.args.get('username', '') }}"><i class="fas fa-users"></i> <span>员工管理</span></a></li>
-                <li><a href="/rooms?username={{ request.args.get('username', '') }}"><i class="fas fa-bed"></i> <span>客房管理</span></a></li>
-                <li><a href="/customers?username={{ request.args.get('username', '') }}" class="active"><i class="fas fa-user-tie"></i> <span>客户管理</span></a></li>
-                <li><a href="/orders?username={{ request.args.get('username', '') }}"><i class="fas fa-clipboard-list"></i> <span>订单管理</span></a></li>
-                <li><a href="/analytics?username={{ request.args.get('username', '') }}"><i class="fas fa-chart-bar"></i> <span>数据统计</span></a></li>
-                <li><a href="/weather?username={{ request.args.get('username', '') }}"><i class="fas fa-cloud-sun"></i> <span>天气显示</span></a></li>
-                <li><a href="/" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> <span>退出登录</span></a></li>
+                <li><a href="/dashboard"><i class="fas fa-tachometer-alt"></i> <span>仪表盘</span></a></li>
+                <li><a href="/employees"><i class="fas fa-users"></i> <span>员工管理</span></a></li>
+                <li><a href="/rooms"><i class="fas fa-bed"></i> <span>客房管理</span></a></li>
+                <li><a href="/customers" class="active"><i class="fas fa-user-tie"></i> <span>客户管理</span></a></li>
+                <li><a href="/orders"><i class="fas fa-clipboard-list"></i> <span>订单管理</span></a></li>
+                <li><a href="/analytics"><i class="fas fa-chart-bar"></i> <span>数据统计</span></a></li>
+                <li><a href="/weather"><i class="fas fa-cloud-sun"></i> <span>天气显示</span></a></li>
+                <li><a href="/logout" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> <span>退出登录</span></a></li>
             </ul>
         </div>
 
@@ -32,7 +32,7 @@
                 <div class="user-info">
                     <div class="user-avatar" id="userAvatar">AD</div>
                     <div class="user-details">
-                        <div class="user-name" id="userName" style="font-weight: 600;">管理员</div>
+                        <div class="user-name" id="userName" style="font-weight: 600;">{{ username }}</div>
                         <div class="user-role" style="font-size: 12px; color: var(--gray-light);">系统管理员</div>
                     </div>
                 </div>
@@ -73,14 +73,11 @@
 
         // 更新用户信息
         function updateUserInfo() {
-            // 尝试从URL参数获取用户名
-            const urlParams = new URLSearchParams(window.location.search);
-            const username = urlParams.get('username') || '管理员';
+            // 从模板变量获取用户名
+            const usernameElement = document.getElementById('userName');
+            const username = usernameElement.textContent || '管理员';
 
-            // 更新用户名显示
-            document.getElementById('userName').textContent = username;
-
-            // 更新头像显示（取前两个字符）
+            // 头像取前两个字符
             const avatar = document.getElementById('userAvatar');
             avatar.textContent = username.substring(0, 2).toUpperCase();
         }

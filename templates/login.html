@@ -75,8 +75,30 @@
                 const password = document.getElementById('password').value;
 
                 if (username && password) {
-                    // 跳转到仪表盘
-                    window.location.href = '/dashboard?username=' + encodeURIComponent(username);
+                    // 发送登录请求到后端
+                    fetch('/login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            showNotification(data.message, 'success');
+                            // 登录成功，跳转到仪表盘
+                            setTimeout(() => {
+                                window.location.href = '/dashboard';
+                            }, 1000);
+                        } else {
+                            showNotification(data.message, 'error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        showNotification('登录请求失败', 'error');
+                    });
                 } else {
                     showNotification('请输入用户名和密码', 'error');
                 }
