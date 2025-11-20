@@ -142,6 +142,11 @@ body {
     font-size: 18px;
 }
 
+.user-avatar-dropdown {
+    position: relative;
+    display: inline-block;
+}
+
 /* 卡片样式 */
 .dashboard-cards {
     display: grid;
