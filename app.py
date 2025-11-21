@@ -1,7 +1,11 @@
 import os
+import sys
+
+sys.path.append(os.path.join(os.path.dirname(__file__), 'modules'))
+
 from flask import Flask, request, jsonify, render_template, redirect, url_for, session
-from auth import Auth
-from weather import Weather
+from module.auth import Auth
+from module.weather import Weather
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
