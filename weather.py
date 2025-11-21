@@ -2,14 +2,26 @@ import configparser
 import gzip
 import io
 import json
+import os
 import urllib.request
 import urllib.parse
 import urllib.error
 
 class Weather:
-    def __init__(self, config_file: str = "weather_api.cfg"):
+    def __init__(self, config_file: str = "config/weather_api.cfg"):
         self.config_file = config_file
         self.api_host, self.api_key = self._read_weather_config(config_file)
+
+    def _check_config(self):
+        if not os.path.exists(self.config_file):
+            _config = configparser.ConfigParser()
+            _config['weather_api'] = {
+                'api_host': 'your-api-host.re.qweatherapi.com',
+                'api_key': 'your-api-key'
+            }
+
+            with open(self.config_file, 'w', encoding='utf-8') as _configfile:
+                _config.write(_configfile)
 
     def _read_weather_config(self, config_file: str) -> tuple:
         config = configparser.ConfigParser()
