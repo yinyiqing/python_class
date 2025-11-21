@@ -44,17 +44,38 @@ function initDropdown() {
     // 用户头像点击事件 - 显示/隐藏下拉菜单
     userAvatar.addEventListener('click', function(e) {
         e.stopPropagation();
+
         // 切换显示状态
-        if (userDropdown.style.display === 'none') {
+        if (userDropdown.style.display === 'none' || userDropdown.style.display === '') {
             userDropdown.style.display = 'block';
+
+            // 添加展开动画
+            setTimeout(() => {
+                userDropdown.style.opacity = '1';
+                userDropdown.style.transform = 'translateY(0) scale(1)';
+            }, 10);
         } else {
-            userDropdown.style.display = 'none';
+            // 添加收起动画
+            userDropdown.style.opacity = '0';
+            userDropdown.style.transform = 'translateY(-10px) scale(0.95)';
+
+            setTimeout(() => {
+                userDropdown.style.display = 'none';
+            }, 300);
         }
     });
 
     // 点击其他地方关闭下拉菜单
     document.addEventListener('click', function() {
-        userDropdown.style.display = 'none';
+        if (userDropdown.style.display === 'block') {
+            // 添加收起动画
+            userDropdown.style.opacity = '0';
+            userDropdown.style.transform = 'translateY(-10px) scale(0.95)';
+
+            setTimeout(() => {
+                userDropdown.style.display = 'none';
+            }, 300);
+        }
     });
 
     // 阻止下拉菜单内部的点击事件冒泡
