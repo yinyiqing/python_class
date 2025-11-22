@@ -223,6 +223,24 @@ body {
     box-shadow: 0 4px 12px rgba(0, 198, 255, 0.3);
 }
 
+.modal {
+    z-index: 2000;
+}
+
+.sidebar {
+    z-index: 100;
+}
+
+.content {
+    position: relative;
+    z-index: 1;
+}
+
+.header {
+    position: relative;
+    z-index: 100;
+}
+
 /* 卡片样式 */
 .dashboard-cards {
     display: grid;

@@ -170,8 +170,17 @@ function initChangePassword() {
 // 初始化退出登录功能
 function initLogout() {
     const logoutBtn = document.getElementById('logoutBtn');
+    const logoutLink = document.querySelector('.logout-link');
+
     if (logoutBtn) {
         logoutBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            window.location.href = '/logout';
+        });
+    }
+
+    if (logoutLink) {
+        logoutLink.addEventListener('click', function(e) {
             e.preventDefault();
             window.location.href = '/logout';
         });

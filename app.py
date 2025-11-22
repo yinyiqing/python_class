@@ -4,11 +4,15 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), 'modules'))
 
 from flask import Flask, request, jsonify, render_template, redirect, url_for, session
-from module.auth import Auth
-from module.weather import Weather
+from modules.auth import Auth
+from modules.config import Config
+from modules.weather import Weather
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
+
+config_manager = Config()
+
 auth_manager = Auth()
 weather_service = Weather()
 
@@ -29,6 +33,27 @@ def login_post():
         return jsonify({'success': True, 'message': '登录成功'})
     else:
         return jsonify({'success': False, 'message': '用户名或密码错误'})
+
+@app.route('/change-password', methods=['POST'])
+def change_password():
+    if not session.get('logged_in'):
+        return jsonify({'success': False, 'message': '请先登录'}), 401
+
+    current_password = request.form.get('currentPassword')
+    new_password = request.form.get('newPassword')
+    confirm_password = request.form.get('confirmPassword')
+
+    # 验证参数
+    if not all([current_password, new_password, confirm_password]):
+        return jsonify({'success': False, 'message': '请填写所有字段'})
+
+    # 验证新密码和确认密码是否匹配
+    if new_password != confirm_password:
+        return jsonify({'success': False, 'message': '新密码和确认密码不匹配'})
+
+    # 更新密码
+    success, message = auth_manager.update_password(current_password, new_password)
+    return jsonify({'success': success, 'message': message})
 
 @app.route('/logout')
 def logout():
