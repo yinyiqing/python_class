@@ -22,8 +22,8 @@ class Config:
     def _create_admin_config(self):
         config = configparser.ConfigParser()
         config['admin'] = {
-            'username': 'admin',
-            'password': 'admin123'
+            'username': '183大帅哥',
+            'password': '183dashuaige'
         }
 
         try:
