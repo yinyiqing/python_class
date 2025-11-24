@@ -4,8 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>酒店管理系统</title>
+
+    <!-- 主题初始化（关键修复） -->
+    <script>
+        const savedTheme = localStorage.getItem("theme") || "light";
+        document.documentElement.setAttribute("data-theme", savedTheme);
+    </script>
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
     {% block extra_css %}{% endblock %}
 </head>
 <body>
@@ -13,7 +21,10 @@
     <div class="main-container">
         <div class="sidebar">
             <div class="sidebar-header">
-                <h2><i class="fas fa-hotel" style="color: var(--accent);"></i> <span>酒店管理系统</span></h2>
+                <h2>
+                    <i class="fas fa-hotel" style="color: var(--accent);"></i>
+                    <span>酒店管理系统</span>
+                </h2>
             </div>
             <ul class="nav-links">
                 <li><a href="/dashboard" class="{% if request.path == '/dashboard' %}active{% endif %}"><i class="fas fa-tachometer-alt"></i> <span>仪表盘</span></a></li>
@@ -29,11 +40,13 @@
 
         <div class="content">
             <div class="header">
-                <h1 style="font-size: 24px; font-weight: 600;">{% block page_title %}页面标题{% endblock %}</h1>
+                <h1 style="font-size: 24px; font-weight: 600;">
+                    {% block page_title %}页面标题{% endblock %}
+                </h1>
+
                 <div class="user-info">
                     <div class="user-avatar-dropdown">
                         <div class="user-avatar" id="userAvatar">AD</div>
-                        <!-- 下拉菜单默认隐藏 -->
                         <div class="dropdown-menu" id="userDropdown" style="display: none;">
                             <div class="dropdown-item" id="changePasswordBtn">
                                 <i class="fas fa-key"></i>
@@ -45,6 +58,7 @@
                             </a>
                         </div>
                     </div>
+
                     <div class="user-details">
                         <div class="user-name" id="userName" style="font-weight: 600;">{{ username }}</div>
                         <div class="user-role" style="font-size: 12px; color: var(--gray-light);">系统管理员</div>
@@ -71,14 +85,17 @@
                     <label for="currentPassword">当前密码</label>
                     <input type="password" id="currentPassword" class="form-control" required>
                 </div>
+
                 <div class="form-group">
                     <label for="newPassword">新密码</label>
                     <input type="password" id="newPassword" class="form-control" required>
                 </div>
+
                 <div class="form-group">
                     <label for="confirmPassword">确认新密码</label>
                     <input type="password" id="confirmPassword" class="form-control" required>
                 </div>
+
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary close-modal">取消</button>
                     <button type="submit" class="btn">确认修改</button>
@@ -87,7 +104,10 @@
         </div>
     </div>
 
+    <!-- 公共 JS -->
     <script src="{{ url_for('static', filename='js/common.js') }}"></script>
+
     {% block extra_js %}{% endblock %}
+
 </body>
 </html>
