@@ -105,8 +105,40 @@ def weather():
 @app.route('/api/weather')
 def get_weather():
     city = request.args.get('city', '北京')
+
+    # 检查是否是配置请求
+    if request.args.get('action') == 'get_config':
+        # 返回当前配置
+        config = weather_service.get_weather_config()
+        return jsonify(config)
+
+    # 检查是否是保存配置请求
+    if request.args.get('action') == 'save_config':
+        if not session.get('logged_in'):
+            return jsonify({'success': False, 'message': '请先登录'}), 401
+
+        api_host = request.args.get('api_host', '').strip()
+        api_key = request.args.get('api_key', '').strip()
+
+        if not api_host or not api_key:
+            return jsonify({'success': False, 'message': 'API主机名和密钥不能为空'})
+
+        if not api_host.endswith('.re.qweatherapi.com'):
+            return jsonify({'success': False, 'message': 'API主机名格式不正确'})
+
+        success = weather_service.update_weather_config(api_host, api_key)
+
+        if success:
+            return jsonify({'success': True, 'message': '配置更新成功'})
+        else:
+            return jsonify({'success': False, 'message': '配置更新失败'})
+
+    # 正常的天气查询
     weather_data = weather_service.get_weather_data(city, 7)
-    return jsonify(weather_data)
+    if weather_data:
+        return jsonify(weather_data)
+    else:
+        return jsonify({'error': '天气数据获取失败'})
 
 if __name__ == '__main__':
     app.run(port=5000, debug=True)

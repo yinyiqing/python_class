@@ -20,6 +20,35 @@
         </div>
     </div>
 </div>
+
+<!-- API配置模态框 -->
+<div id="apiConfigModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>天气API配置</h3>
+            <span class="close-modal">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="apiConfigForm">
+                <div class="form-group">
+                    <label for="apiHost">API主机名</label>
+                    <div style="display: flex; align-items: center; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; overflow: hidden;">
+                        <input type="text" id="apiHost" name="api_host" placeholder="API主机名前缀" required class="form-control" style="border: none; border-radius: 0; border-right: 1px solid rgba(255, 255, 255, 0.2);">
+                        <span style="padding: 0 12px; color: var(--gray-light); font-size: 14px; white-space: nowrap;">.re.qweatherapi.com</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="apiKey">API密钥</label>
+                    <input type="password" id="apiKey" name="api_key" placeholder="API密钥" required class="form-control">
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary close-modal">取消</button>
+                    <button type="submit" class="btn">保存配置</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -27,8 +56,100 @@
     // 绑定天气查询事件
     document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('searchWeather').addEventListener('click', searchWeather);
+
+        // 初始化模态框
+        initApiConfigModal();
+
         searchWeather(); // 初始加载北京天气
     });
+
+    // 显示API配置模态框
+    function showApiConfig() {
+        const modal = document.getElementById('apiConfigModal');
+        modal.style.display = 'flex';
+
+        // 加载当前配置
+        fetch(`/api/weather?action=get_config`)
+            .then(response => response.json())
+            .then(config => {
+                if (config.api_host) {
+                    // 从完整主机名中提取前缀部分
+                    const fullHost = config.api_host;
+                    const prefix = fullHost.replace('.re.qweatherapi.com', '');
+                    document.getElementById('apiHost').value = prefix;
+                }
+                document.getElementById('apiKey').value = config.api_key || '';
+            })
+            .catch(error => {
+                console.error('Error loading API config:', error);
+            });
+    }
+
+    // 初始化API配置模态框
+    function initApiConfigModal() {
+        const modal = document.getElementById('apiConfigModal');
+        const form = document.getElementById('apiConfigForm');
+
+        // 关闭模态框
+        document.querySelectorAll('#apiConfigModal .close-modal').forEach(button => {
+            button.addEventListener('click', function() {
+                modal.style.display = 'none';
+                form.reset();
+            });
+        });
+
+        // 表单提交
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const hostPrefix = document.getElementById('apiHost').value.trim();
+            const apiKey = document.getElementById('apiKey').value.trim();
+
+            if (!hostPrefix || !apiKey) {
+                showNotification('请填写所有字段', 'error');
+                return;
+            }
+
+            // 构建完整的主机名
+            const fullHost = hostPrefix + '.re.qweatherapi.com';
+
+            // 发送配置到后端
+            const params = new URLSearchParams({
+                action: 'save_config',
+                api_host: fullHost,
+                api_key: apiKey
+            });
+
+            fetch(`/api/weather?${params}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        modal.style.display = 'none';
+                        form.reset();
+                        showNotification('API配置保存成功', 'success');
+
+                        // 配置保存后重新查询天气
+                        setTimeout(() => {
+                            searchWeather();
+                        }, 1000);
+                    } else {
+                        showNotification(data.message || '保存失败', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error saving API config:', error);
+                    showNotification('保存配置失败', 'error');
+                });
+        });
+
+        // 点击模态框外部关闭
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                modal.style.display = 'none';
+                form.reset();
+            }
+        });
+    }
 
     // 搜索天气
     function searchWeather() {
@@ -46,17 +167,36 @@
         fetch(`/api/weather?city=${encodeURIComponent(cityName)}`)
             .then(response => response.json())
             .then(weatherData => {
-                displayWeatherData(weatherData);
+                if (weatherData.error) {
+                    // 如果返回错误信息，显示配置按钮
+                    showErrorWithConfigButton();
+                } else {
+                    displayWeatherData(weatherData);
+                }
             })
             .catch(error => {
                 console.error('Error fetching weather data:', error);
-                weatherContent.innerHTML = `
-                    <div style="text-align: center; padding: 40px;">
-                        <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: var(--warning); margin-bottom: 20px;"></i>
-                        <p style="color: var(--gray-light);">获取天气信息失败，请稍后重试</p>
-                    </div>
-                `;
+                showErrorWithConfigButton();
             });
+    }
+
+    // 显示错误信息并显示配置按钮
+    function showErrorWithConfigButton() {
+        const weatherContent = document.getElementById('weatherContent');
+        weatherContent.innerHTML = `
+            <div style="text-align: center; padding: 40px;">
+                <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: var(--warning); margin-bottom: 20px;"></i>
+                <p style="color: var(--gray-light);">获取天气信息失败，请检查API配置</p>
+                <button id="showConfigBtn" class="btn btn-secondary" style="margin-top: 15px;">
+                    <i class="fas fa-cog"></i> 配置API
+                </button>
+            </div>
+        `;
+
+        // 为动态生成的按钮绑定事件
+        document.getElementById('showConfigBtn').addEventListener('click', function() {
+            showApiConfig();
+        });
     }
 
     // 显示天气数据

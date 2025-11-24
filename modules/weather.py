@@ -2,6 +2,7 @@ import configparser
 import gzip
 import io
 import json
+import os
 import urllib.request
 import urllib.parse
 import urllib.error
@@ -149,6 +150,65 @@ class Weather:
                 print(f"第{i + 1}天: {day.get('fxDate', '未知')}")
                 print(f"  白天: {day.get('textDay', '未知')} | 夜间: {day.get('textNight', '未知')}")
                 print(f"  温度: {day.get('tempMin', '未知')}°C ~ {day.get('tempMax', '未知')}°C")
+
+    def get_weather_config(self) -> dict:
+        """
+        获取当前天气API配置
+
+        Returns:
+            dict: 包含api_host和api_key的配置字典
+        """
+        try:
+            config = configparser.ConfigParser()
+            config.read(self.config_file, encoding='utf-8')
+
+            if 'weather_api' not in config:
+                return {}
+
+            return {
+                'api_host': config['weather_api'].get('api_host', ''),
+                'api_key': config['weather_api'].get('api_key', '')
+            }
+
+        except Exception as e:
+            print(f"读取天气配置失败: {e}")
+            return {}
+
+    def update_weather_config(self, api_host: str, api_key: str) -> bool:
+        """
+        更新天气API配置
+
+        Args:
+            api_host: API主机名，必须以 .re.qweatherapi.com 结尾
+            api_key: API密钥
+
+        Returns:
+            bool: 配置更新成功返回 True，失败返回 False
+        """
+        try:
+            config = configparser.ConfigParser()
+            config.read(self.config_file, encoding='utf-8')
+
+            if 'weather_api' not in config:
+                config['weather_api'] = {}
+
+            config['weather_api']['api_host'] = api_host
+            config['weather_api']['api_key'] = api_key
+
+            # 确保配置目录存在
+            os.makedirs(os.path.dirname(self.config_file), exist_ok=True)
+
+            with open(self.config_file, 'w', encoding='utf-8') as configfile:
+                config.write(configfile)
+
+            # 更新当前实例的配置
+            self.api_host = api_host
+            self.api_key = api_key
+
+            return True
+        except Exception as e:
+            print(f"更新天气配置失败: {e}")
+            return False
 
 if __name__ == "__main__":
     # 创建天气查询实例
