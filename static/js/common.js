@@ -1,3 +1,37 @@
+// 主题切换
+function setTheme(theme) {
+    const validThemes = ['dark', 'light', 'red'];
+    if (!validThemes.includes(theme)) theme = 'dark';
+
+    // 保存到 localStorage
+    localStorage.setItem('theme', theme);
+
+    // 设置 HTML 属性
+    document.documentElement.setAttribute('data-theme', theme);
+
+    const themeNames = { dark: '深色', light: '浅色', red: '红色' };
+    const notice = document.querySelector('.theme-notice');
+    if (notice) {
+        notice.textContent = `已切换到 ${themeNames[theme]} 主题`;
+    }
+
+    showNotification(`已切换到 ${themeNames[theme]} 主题`, 'info');
+}
+
+
+
+document.addEventListener('DOMContentLoaded', () => {
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+
+    document.querySelectorAll('.theme-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const theme = btn.getAttribute('data-theme');
+            setTheme(theme);
+        });
+    });
+});
+
 // 显示通知
 function showNotification(message, type = 'info') {
     const notification = document.createElement('div');
