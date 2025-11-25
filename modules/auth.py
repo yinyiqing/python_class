@@ -1,7 +1,7 @@
 import configparser
 import os
 
-class Auth():
+class Auth:
     def __init__(self, config_file: str = "config/admin.cfg") -> None:
         self.config_file = config_file
 

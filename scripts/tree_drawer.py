@@ -1,3 +1,7 @@
+"""
+显示文件夹结构
+"""
+
 from pathlib import Path
 
 # 颜色定义
@@ -9,7 +13,6 @@ YELLOW = '\033[93m'  # 其他文件
 CYAN = '\033[96m'  # CSS/JS文件
 MAGENTA = '\033[95m'  # HTML文件
 RED = '\033[91m'  # 错误信息
-
 
 def get_file_color(file_path):
     if file_path.is_dir():
@@ -27,7 +30,6 @@ def get_file_color(file_path):
     else:
         return YELLOW
 
-
 def should_exclude(path):
     exclude_patterns = ['.venv', '.idea', '__pycache__', '.git', '.vscode', '.vs', '.pytest_cache']
     path_str = str(path)
@@ -41,7 +43,6 @@ def should_exclude(path):
         return True
 
     return False
-
 
 def find_project_root():
     current_path = Path('.').resolve()
@@ -70,7 +71,6 @@ def find_project_root():
 
     # 如果没有找到标记文件，返回当前目录
     return Path('.').resolve()
-
 
 def print_tree(directory, level=0, is_last=True, prefix=''):
     # 检查是否应该排除整个目录
@@ -113,7 +113,6 @@ def print_tree(directory, level=0, is_last=True, prefix=''):
     except Exception as e:
         print(f"{prefix}    └── {RED}[错误: {str(e)}]{RESET}")
 
-
 def main():
     # 自动检测项目根目录
     project_root = find_project_root()
@@ -132,7 +131,6 @@ def main():
     print(f"{MAGENTA}洋红色{RESET}: HTML文件")
     print(f"{CYAN}青色{RESET}: CSS/JS文件")
     print(f"{YELLOW}黄色{RESET}: 其他文件")
-
 
 if __name__ == '__main__':
     main()

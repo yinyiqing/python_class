@@ -81,8 +81,8 @@ def rooms():
 @app.route('/customers')
 def customers():
     if not session.get('logged_in'):
-        return redirect(url_for('login'), username=session.get('username'))
-    return render_template('customers.html')
+        return redirect(url_for('login'))
+    return render_template('customers.html', username=session.get('username'))
 
 @app.route('/orders')
 def orders():
