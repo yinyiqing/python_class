@@ -140,5 +140,11 @@ def get_weather():
     else:
         return jsonify({'error': '天气数据获取失败'})
 
+@app.route('/theme')
+def theme():
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
+    return render_template('theme.html', username=session.get('username'))
+
 if __name__ == '__main__':
     app.run(port=5000, debug=True)

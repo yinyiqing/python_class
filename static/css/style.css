@@ -213,7 +213,9 @@ body {
     box-shadow: 0 8px 25px rgba(0,0,0,0.3);
     min-width: 160px;
     z-index: 1000;
-    overflow: hidden;
+    overflow: visible;
+
+     /* 动画属性 */
     opacity: 0;
     transform: translateY(-10px) scale(0.95);
     transform-origin: top right;

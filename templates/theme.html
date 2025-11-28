@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}">
+{% endblock %}
+
+{% block page_title %}主题设置{% endblock %}
+
+{% block content %}
+<div class="content-section">
+    <div class="section-header">
+        <h2 class="section-title">主题设置</h2>
+    </div>
+
+    <div class="theme-notice" id="themeNotice"></div>
+
+    <div class="theme-options">
+        <div class="theme-cards">
+            <div class="theme-card" data-theme="dark">
+                <div class="theme-preview dark-theme">
+                    <div class="preview-header"></div>
+                    <div class="preview-sidebar"></div>
+                    <div class="preview-content">
+                        <div class="preview-card"></div>
+                        <div class="preview-card"></div>
+                    </div>
+                </div>
+                <div class="theme-info">
+                    <h3>深色主题</h3>
+                    <p>深色主题描述文本</p>
+                    <button class="btn theme-btn" data-theme="dark">应用主题</button>
+                </div>
+            </div>
+
+            <div class="theme-card" data-theme="light">
+                <div class="theme-preview light-theme">
+                    <div class="preview-header"></div>
+                    <div class="preview-sidebar"></div>
+                    <div class="preview-content">
+                        <div class="preview-card"></div>
+                        <div class="preview-card"></div>
+                    </div>
+                </div>
+                <div class="theme-info">
+                    <h3>浅色主题</h3>
+                    <p>浅色主题描述文本</p>
+                    <button class="btn theme-btn" data-theme="light">应用主题</button>
+                </div>
+            </div>
+
+            <div class="theme-card" data-theme="red">
+                <div class="theme-preview red-theme">
+                    <div class="preview-header"></div>
+                    <div class="preview-sidebar"></div>
+                    <div class="preview-content">
+                        <div class="preview-card"></div>
+                        <div class="preview-card"></div>
+                    </div>
+                </div>
+                <div class="theme-info">
+                    <h3>红色主题</h3>
+                    <p>红色主题描述文本</p>
+                    <button class="btn theme-btn" data-theme="red">应用主题</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="current-theme-info">
+        <h3>当前主题</h3>
+        <div class="current-theme-display">
+            <span id="currentThemeName">正在获取...</span>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 更新当前主题显示
+    function updateCurrentTheme() {
+        const currentTheme = localStorage.getItem('theme') || 'dark';
+        const themeNames = { dark: '深色主题', light: '浅色主题', red: '红色主题' };
+        document.getElementById('currentThemeName').textContent = themeNames[currentTheme];
+        
+        // 高亮当前主题卡片
+        document.querySelectorAll('.theme-card').forEach(card => {
+            card.classList.remove('active');
+            if (card.getAttribute('data-theme') === currentTheme) {
+                card.classList.add('active');
+            }
+        });
+    }
+
+    // 初始化主题按钮
+    document.querySelectorAll('.theme-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const theme = this.getAttribute('data-theme');
+            setTheme(theme);
+            updateCurrentTheme();
+        });
+    });
+
+    // 点击整个卡片也可以切换主题
+    document.querySelectorAll('.theme-card').forEach(card => {
+        card.addEventListener('click', function(e) {
+            if (!e.target.classList.contains('theme-btn')) {
+                const theme = this.getAttribute('data-theme');
+                setTheme(theme);
+                updateCurrentTheme();
+            }
+        });
+    });
+
+    // 初始化显示当前主题
+    updateCurrentTheme();
+});
+</script>
+{% endblock %}
