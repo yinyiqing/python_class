@@ -6,14 +6,20 @@ sys.path.append(os.path.join(os.path.dirname(__file__), 'modules'))
 from flask import Flask, request, jsonify, render_template, redirect, url_for, session
 from modules.auth import Auth
 from modules.config import Config
+from modules.database import Database
+from modules.departments import Departments
+from modules.employee import Employee
 from modules.weather import Weather
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 
 config_manager = Config()
+db = Database()
 
 auth_manager = Auth()
+department_manager = Departments(db)
+employee_manager = Employee(db)
 weather_service = Weather()
 
 @app.route('/')
@@ -71,6 +77,104 @@ def employees():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
     return render_template('employees.html', username=session.get('username'))
+
+# 部门管理路由
+@app.route('/api/department/list', methods=['GET'])
+def api_get_departments():
+    if not session.get('logged_in'):
+        return jsonify({'success': False, 'message': '请先登录'}), 401
+
+    result = department_manager.get_all_departments()  # 改为调用 department_manager
+    return jsonify(result)
+
+@app.route('/api/department/create', methods=['POST'])
+def api_create_department():
+    if not session.get('logged_in'):
+        return jsonify({'success': False, 'message': '请先登录'}), 401
+
+    data = request.json
+    success, message = department_manager.create_department(data)  # 改为调用 department_manager
+    return jsonify({'success': success, 'message': message})
+
+@app.route('/api/department/update/<department_id>', methods=['PUT'])
+def api_update_department(department_id):
+    if not session.get('logged_in'):
+        return jsonify({'success': False, 'message': '请先登录'}), 401
+
+    data = request.json
+    success, message = department_manager.update_department(department_id, data)  # 改为调用 department_manager
+    return jsonify({'success': success, 'message': message})
+
+@app.route('/api/department/delete/<department_id>', methods=['DELETE'])
+def api_delete_department(department_id):
+    if not session.get('logged_in'):
+        return jsonify({'success': False, 'message': '请先登录'}), 401
+
+    success, message = department_manager.delete_department(department_id)  # 改为调用 department_manager
+    return jsonify({'success': success, 'message': message})
+
+# 员工管理路由
+@app.route('/api/employee/create', methods=['POST'])
+def api_create_employee():
+    if not session.get('logged_in'):
+        return jsonify({'success': False, 'message': '请先登录'}), 401
+
+    data = request.json
+    result = employee_manager.create_employee(data)
+    return jsonify(result)
+
+@app.route('/api/employee/list', methods=['GET'])
+def api_get_employees():
+    if not session.get('logged_in'):
+        return jsonify({'success': False, 'message': '请先登录'}), 401
+
+    # 这里可以添加过滤参数，目前先返回所有员工
+    result = employee_manager.get_all_employees()
+    return jsonify(result)
+
+@app.route('/api/employee/<employee_id>', methods=['GET'])
+def api_get_employee(employee_id):
+    if not session.get('logged_in'):
+        return jsonify({'success': False, 'message': '请先登录'}), 401
+
+    result = employee_manager.get_employee(employee_id)
+    return jsonify(result)
+
+@app.route('/api/employee/update/<employee_id>', methods=['PUT'])
+def api_update_employee(employee_id):
+    if not session.get('logged_in'):
+        return jsonify({'success': False, 'message': '请先登录'}), 401
+
+    data = request.json
+    result = employee_manager.update_employee(employee_id, data)
+    return jsonify(result)
+
+@app.route('/api/employee/delete/<employee_id>', methods=['DELETE'])
+def api_delete_employee(employee_id):
+    if not session.get('logged_in'):
+        return jsonify({'success': False, 'message': '请先登录'}), 401
+
+    result = employee_manager.delete_employee(employee_id)
+    return jsonify(result)
+
+# 员工相关统计信息，先在这里测试一下，后续迁移进analytics页面
+@app.route('/api/employee/statistics', methods=['GET'])
+def api_get_employee_statistics():
+    if not session.get('logged_in'):
+        return jsonify({'success': False, 'message': '请先登录'}), 401
+
+    try:
+        statistics = employee_manager.get_employee_statistics()
+        return jsonify({
+            'success': True,
+            'data': statistics,
+            'message': '统计信息获取成功'
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'获取统计信息失败: {str(e)}'
+        })
 
 @app.route('/rooms')
 def rooms():
