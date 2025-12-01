@@ -107,7 +107,7 @@ class Employee:
                 return {'success': False, 'message': '员工不存在'}
 
             # 简单的更新逻辑
-            if self.update_employee(employee_id, update_data):
+            if self.db_update_employee(employee_id, update_data):
                 return {'success': True, 'message': '员工信息更新成功'}
             else:
                 return {'success': False, 'message': '更新失败'}
@@ -117,7 +117,7 @@ class Employee:
     def delete_employee(self, employee_id: str) -> dict:
         """删除员工"""
         try:
-            if self.delete_employee(employee_id):
+            if self.db_delete_employee(employee_id):
                 return {'success': True, 'message': '员工删除成功'}
             else:
                 return {'success': False, 'message': '员工不存在或删除失败'}
