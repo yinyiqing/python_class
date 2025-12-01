@@ -286,6 +286,8 @@ function confirmDeleteEmployee(employeeId, employeeName) {
         `确定要删除员工 "${employeeName}" 吗？此操作不可恢复！`;
 
     document.getElementById('confirm-modal').style.display = 'flex';
+    document.getElementById('confirm-delete-btn').addEventListener('click', executeDelete);
+
 }
 
 // ==================== 部门管理功能 ====================
