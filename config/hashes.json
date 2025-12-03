@@ -1,0 +1,31 @@
+{
+  "metadata": {
+    "generated_at": "2025-12-04T00:18:25.464276",
+    "file_count": 23
+  },
+  "file_hashes": {
+    "app.py": "897ecd71ae471499c3399dd3d74d46b8077b11a9ba75677db224a52d537fafdc",
+    "modules/auth.py": "18c718c0881def55c102f57961ec25bb844b0cdaf850d04408e8f1a2db443fcd",
+    "modules/database.py": "3261717d1a2b18bb2caa6954f9fa4cd6fc306c5d6711a42a51ae0e7e8728403a",
+    "modules/departments.py": "b5b18702a465302be689007e0079b45478750a7daffa388ad695aebdb54d9203",
+    "modules/employee.py": "c847224a26c9e59f0ca6395b64eee913c92a13644570c2a4aa09e077aa7076de",
+    "modules/weather.py": "f69572e2ddbe204cc1f6a6a74d82e373805ce8de3bbc397b993ebdc95134d07c",
+    "static/css/login.css": "46b9f5670da14e6a7f1dfdd4d49eae217fca25735d26f50f57e07f2d06141630",
+    "static/css/style.css": "570b46fb27eba1e5bbea20f6818c7e3e5773f2e8e4aced4e72713e981d4fe061",
+    "static/css/theme.css": "928ed7c75f5cbf27f57f8c8f4ee24448b8dc4f02725366cd6cfa46f2e2390f75",
+    "static/js/common.js": "15aa5465aaf1b2c26f0bcf271eefc890beb47bb9327d4f3013db7a34cf2019ce",
+    "static/js/employees.js": "95cbd7ee6798dc31c4c0e9024b5dd83104605aec1529b46f25ec2fc7794b3ada",
+    "static/js/login.js": "362d1b9e0790aa99a66296656dca6f61c6105eaa3b84fc5ffc37355093ac28a2",
+    "templates/analytics.html": "e6be2a65b0c10036b8bd6608018830e17ae2e9311d053f64303d537af4c40a85",
+    "templates/base.html": "2032c511467d85a908412458916887224ab4b34855d0af66f9ba78acf3d711a7",
+    "templates/customers.html": "d78c6d27bc24fed59bad5dd74bb1e5644aa353f0e20f7422f2b66cd1b153eca3",
+    "templates/dashboard.html": "7d84a08484310f410e6f22fb453cd837d711d025f2502fb37662772a727ffbec",
+    "templates/employees.html": "0b4c6ddbc30ae6f3be33709283a3be066bdc20ca1aaedff0dc9900f526344278",
+    "templates/login.html": "248b8db4c362f02718f673655a7341df209817150960f15cb6747a9c8cba98ce",
+    "templates/orders.html": "96d7216d6607d6ae27e817cb36224ae5da7132fe6decb0d4fcbb51f5d72c3457",
+    "templates/rooms.html": "faaa72eef94f0128ec2decb8c628ec54c64d7f6a28b40a0968a35e345d68861d",
+    "templates/security.html": "b5823b3e06f2a60173df3bb4bc2b206ce823b67e007b377f33d386d735e291e5",
+    "templates/theme.html": "544b672b33d98ab4e0ac095a3956d72ebfdd8d51f5237fde8f1a5730d3320498",
+    "templates/weather.html": "b5a1bcb77b9919be8421574453737abf0b69cd4fedf703f1412be9f7d661ba9c"
+  }
+}

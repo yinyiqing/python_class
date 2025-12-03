@@ -9,6 +9,7 @@ from modules.config import Config
 from modules.database import Database
 from modules.departments import Departments
 from modules.employee import Employee
+from modules.security import Security
 from modules.weather import Weather
 
 app = Flask(__name__)
@@ -16,6 +17,7 @@ app.secret_key = os.urandom(24)
 
 config_manager = Config()
 db = Database()
+security_manager = Security()
 
 auth_manager = Auth()
 department_manager = Departments(db)
@@ -24,6 +26,9 @@ weather_service = Weather()
 
 @app.route('/')
 def login():
+    is_valid, corrupted_files = security_manager.verify_integrity()
+    if not is_valid:
+        return render_template('security.html', corrupted_files=corrupted_files)
     if session.get('logged_in'):
         return redirect(url_for('dashboard'))
     return render_template('login.html')

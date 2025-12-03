@@ -12,13 +12,17 @@ FILES = [
     "app.py",
 
     "modules/auth.py",
-    "modules/config.py",
+    # "modules/config.py",
+    "modules/database.py",
+    "modules/departments.py",
     "modules/employee.py",
     "modules/weather.py",
 
     "static/css/login.css",
     "static/css/style.css",
+    "static/css/theme.css",
     "static/js/common.js",
+    "static/js/employees.js",
     "static/js/login.js",
 
     "templates/analytics.html",
@@ -29,6 +33,8 @@ FILES = [
     "templates/login.html",
     "templates/orders.html",
     "templates/rooms.html",
+    "templates/security.html",
+    "templates/theme.html",
     "templates/weather.html"
 ]
 

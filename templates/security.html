@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>酒店管理系统</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+
+    <style>
+        .error-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .error-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 40px;
+            width: 100%;
+            max-width: 600px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .error-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .error-header h1 {
+            font-size: 32px;
+            margin-bottom: 15px;
+            background: linear-gradient(to right, #ff416c, #ff4b2b);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .error-header .subtitle {
+            color: var(--color-gray-light);
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        .error-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            color: var(--color-danger);
+        }
+
+        /* 使用现有样式，只需微调 */
+        .error-warning {
+            background: rgba(220, 53, 69, 0.2);
+            border-left: 4px solid var(--color-danger);
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+        }
+
+        .warning-icon {
+            color: var(--color-danger);
+            font-size: 20px;
+            margin-top: 2px;
+        }
+
+        .warning-content h3 {
+            color: var(--color-light);
+            margin-bottom: 8px;
+            font-size: 18px;
+        }
+
+        .warning-content p {
+            color: var(--color-gray-light);
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .suggestion-box {
+            background: rgba(0, 198, 255, 0.1);
+            border-left: 4px solid var(--color-notice);
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+        }
+
+        .suggestion-icon {
+            color: var(--color-notice);
+            font-size: 20px;
+            margin-top: 2px;
+        }
+
+        .suggestion-content h4 {
+            color: var(--color-light);
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+
+        .suggestion-content ol {
+            color: var(--color-gray-light);
+            font-size: 14px;
+            line-height: 1.5;
+            margin-left: 20px;
+        }
+
+        .suggestion-content li {
+            margin-bottom: 8px;
+        }
+
+        .files-section {
+            margin-bottom: 30px;
+        }
+
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .file-item:last-child {
+            border-bottom: none;
+        }
+
+        .file-path {
+            color: var(--color-light);
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            flex: 1;
+            word-break: break-all;
+        }
+
+        .file-status {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            margin-left: 15px;
+        }
+
+        .status-modified {
+            background: rgba(255, 193, 7, 0.2);
+            color: var(--color-warning);
+        }
+
+        .status-missing {
+            background: rgba(220, 53, 69, 0.2);
+            color: var(--color-danger);
+        }
+
+        .error-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        /* 响应式调整 */
+        @media (max-width: 768px) {
+            .error-card {
+                padding: 25px;
+            }
+
+            .btn-group {
+                flex-direction: column;
+            }
+
+            .file-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .file-status {
+                margin-left: 0;
+                align-self: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="error-container">
+        <div class="error-card">
+            <div class="error-header">
+                <div class="error-icon">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <h1>系统文件完整性校验失败</h1>
+                <p class="subtitle">检测到关键文件被修改或缺失，系统无法正常运行</p>
+                <p class="subtitle" style="font-size: 14px; color: var(--color-gray-light);">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    此页面为安全保护机制，仅当文件校验失败时显示
+                </p>
+            </div>
+
+            <div class="error-warning">
+                <div class="warning-icon">
+                    <i class="fas fa-exclamation-circle"></i>
+                </div>
+                <div class="warning-content">
+                    <h3>安全警告</h3>
+                    <p>系统检测到部分核心文件被未经授权的修改或意外损坏。为了确保系统安全，必须修复这些文件才能继续使用。请立即联系系统管理员处理此问题。</p>
+                </div>
+            </div>
+
+            <div class="suggestion-box">
+                <div class="suggestion-icon">
+                    <i class="fas fa-lightbulb"></i>
+                </div>
+                <div class="suggestion-content">
+                    <h4>修复建议</h4>
+                    <ol>
+                        <li>联系系统管理员检查文件完整性</li>
+                        <li>从备份中恢复被修改的文件</li>
+                        <li>重新生成文件哈希校验信息</li>
+                        <li>扫描系统是否存在恶意软件</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="files-section">
+                <div class="section-title">
+                    <i class="fas fa-file-exclamation"></i>
+                    异常文件列表
+                </div>
+                <div class="files-list" id="corruptedFilesList">
+                    <!-- 文件列表将通过JavaScript动态填充 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 使用现有的 common.js -->
+    <script src="{{ url_for('static', filename='js/common.js') }}"></script>
+
+    <script>
+        // 文件列表将从后端传递的数据动态填充
+        document.addEventListener('DOMContentLoaded', function() {
+            const filesList = document.getElementById('corruptedFilesList');
+
+            // 使用从Flask传递的数据
+            {% if corrupted_files %}
+                {% for file in corrupted_files %}
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'file-item';
+                    // 判断文件状态（这里简化为全部显示为"已被修改"）
+                    fileItem.innerHTML = `
+                        <span class="file-path">{{ file }}</span>
+                        <span class="file-status status-modified">已被修改</span>
+                    `;
+                    filesList.appendChild(fileItem);
+                {% endfor %}
+            {% else %}
+                // 如果没有传递数据，显示默认信息
+                filesList.innerHTML = `
+                    <div style="text-align: center; padding: 20px; color: var(--color-gray-light);">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 32px; margin-bottom: 10px; color: var(--color-warning);"></i>
+                        <p>系统检测到文件完整性异常</p>
+                    </div>
+                `;
+            {% endif %}
+        });
+
+        // 显示详细验证信息
+        function showDetails() {
+            const detailMessage = `
+                校验时间: ${new Date().toLocaleString()}
+                异常文件数: {{ corrupted_files|length if corrupted_files else 0 }} 个
+                验证状态: 失败
+                建议操作: 立即联系系统管理员修复文件
+
+                异常文件详情:
+                {% if corrupted_files %}
+                    {{ corrupted_files|join('\\n') }}
+                {% else %}
+                    未获取到具体文件列表
+                {% endif %}
+            `;
+
+            alert(detailMessage);
+        }
+
+        // 修改联系管理员按钮，传递异常文件信息
+        function contactAdmin() {
+            const subject = encodeURIComponent('系统文件完整性校验失败 - 紧急处理');
+            const body = encodeURIComponent(`检测到异常文件：\n\n{% if corrupted_files %}{{ corrupted_files|join('\\n') }}{% else %}未获取到具体文件列表{% endif %}\n\n请立即处理。`);
+            window.location.href = `mailto:admin@hotel-system.com?subject=${subject}&body=${body}`;
+        }
+
+        // 更新邮件链接以使用函数
+        document.querySelector('a[href^="mailto"]').addEventListener('click', function(e) {
+            e.preventDefault();
+            contactAdmin();
+        });
+    </script>
+</body>
+</html>
