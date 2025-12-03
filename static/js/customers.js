@@ -5,13 +5,22 @@ let deleteCustomerId = null;
 document.addEventListener('DOMContentLoaded', function() {
     loadCustomers();
 
-    // 初始化所有模态框的关闭按钮 (class="close-modal")
-    // 这对应了 HTML 中的 <button class="close-modal"> 和取消按钮
+    // 初始化所有模态框的关闭按钮
     document.querySelectorAll('.close-modal').forEach(button => {
         button.addEventListener('click', function() {
             closeAllModals();
         });
     });
+
+    // [新增] 监听搜索框的"回车"按键事件
+    const searchInput = document.getElementById('customer-search');
+    if (searchInput) {
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchCustomers();
+            }
+        });
+    }
 });
 
 // 1. 加载客户列表
@@ -24,8 +33,7 @@ async function loadCustomers() {
         if (data.success) {
             renderCustomersTable(data.data);
         } else {
-            renderCustomersTable([]); // 即使失败也清空表格防止显示旧数据
-            // 过滤掉 "未找到" 这种非错误类型的提示
+            renderCustomersTable([]);
             if (data.message && !data.message.includes('未找到')) {
                 showError(data.message);
             }
@@ -51,7 +59,6 @@ function renderCustomersTable(customers) {
     let html = '';
 
     customers.forEach(customer => {
-        // 防止 created_at 为空导致报错
         const createdDate = customer.created_at ? customer.created_at.split(' ')[0] : '-';
         html += `
             <tr>
@@ -61,10 +68,10 @@ function renderCustomersTable(customers) {
                 <td>${customer.id_card}</td>
                 <td>${createdDate}</td>
                 <td>
-                    <button class="btn btn-warning btn-sm" onclick="showEditCustomerModal('${customer.id}')">
+                    <button class="btn btn-warning btn-sm btn-icon" onclick="showEditCustomerModal('${customer.id}')">
                         <i class="fas fa-edit"></i> 编辑
                     </button>
-                    <button class="btn btn-danger btn-sm" onclick="confirmDeleteCustomer('${customer.id}', '${customer.name}')">
+                    <button class="btn btn-danger btn-sm btn-icon" onclick="confirmDeleteCustomer('${customer.id}', '${customer.name}')">
                         <i class="fas fa-trash"></i> 删除
                     </button>
                 </td>
@@ -77,15 +84,14 @@ function renderCustomersTable(customers) {
 // 3. 点击“添加客户”按钮
 function showAddCustomerModal() {
     document.getElementById('customer-modal-title').textContent = '添加客户';
-    document.getElementById('customer-form').reset(); // 清空表单
-    document.getElementById('edit-customer-id').value = ''; // 清空ID，表示新增
+    document.getElementById('customer-form').reset();
+    document.getElementById('edit-customer-id').value = '';
     document.getElementById('customer-modal').style.display = 'flex';
 }
 
 // 4. 点击“编辑”按钮
 async function showEditCustomerModal(customerId) {
     try {
-        // 先从后台获取最新数据，确保数据准确
         const response = await fetch(`/api/customer/${customerId}`);
         const data = await response.json();
 
@@ -93,12 +99,9 @@ async function showEditCustomerModal(customerId) {
             const c = data.data;
             document.getElementById('customer-modal-title').textContent = '编辑客户';
             document.getElementById('edit-customer-id').value = c.id;
-
-            // 填充表单
             document.getElementById('name').value = c.name;
             document.getElementById('phone').value = c.phone;
             document.getElementById('id_card').value = c.id_card;
-
             document.getElementById('customer-modal').style.display = 'flex';
         } else {
             showError(data.message);
@@ -108,18 +111,15 @@ async function showEditCustomerModal(customerId) {
     }
 }
 
-// 5. 点击“保存”按钮 (提交表单)
+// 5. 点击“保存”按钮
 async function saveCustomer(event) {
-    event.preventDefault(); // 阻止表单默认提交刷新页面
+    event.preventDefault();
 
     const form = document.getElementById('customer-form');
-    // 获取表单数据
     const formData = new FormData(form);
     const data = Object.fromEntries(formData.entries());
-
     const customerId = document.getElementById('edit-customer-id').value;
 
-    // 判断是新增(POST)还是修改(PUT)
     const url = customerId ? `/api/customer/update/${customerId}` : '/api/customer/create';
     const method = customerId ? 'PUT' : 'POST';
 
@@ -135,7 +135,7 @@ async function saveCustomer(event) {
         if (result.success) {
             showNotification('保存成功', 'success');
             closeAllModals();
-            loadCustomers(); // 刷新列表
+            loadCustomers();
         } else {
             showError(result.message);
         }
@@ -152,8 +152,6 @@ function confirmDeleteCustomer(id, name) {
     document.getElementById('confirm-modal').style.display = 'flex';
 }
 
-// 绑定删除确认按钮点击事件
-// 这里使用 if (confirmBtn) 检查，防止 JS 加载比 HTML 快导致找不到元素
 const confirmBtn = document.getElementById('confirm-delete-btn');
 if (confirmBtn) {
     confirmBtn.addEventListener('click', async function() {
@@ -174,7 +172,7 @@ if (confirmBtn) {
     });
 }
 
-// 辅助功能：搜索
+// 7. 搜索功能 (这就是你之前点击没反应的函数)
 function searchCustomers() {
     const keyword = document.getElementById('customer-search').value.trim();
     if (!keyword) {
@@ -182,13 +180,25 @@ function searchCustomers() {
         return;
     }
 
+    // 显示加载状态，提升体验
+    showLoading('customers-table-body');
+
     fetch(`/api/customer/search?keyword=${encodeURIComponent(keyword)}`)
         .then(res => res.json())
         .then(data => {
-            if (data.success) renderCustomersTable(data.data);
-            else renderCustomersTable([]);
+            if (data.success) {
+                renderCustomersTable(data.data);
+            } else {
+                renderCustomersTable([]);
+                showError(data.message || '搜索未返回结果');
+            }
         })
-        .catch(err => showError('搜索请求失败'));
+        .catch(err => {
+            console.error(err);
+            showError('搜索请求失败');
+            // 如果失败，恢复显示原列表或保持空
+            loadCustomers();
+        });
 }
 
 function clearSearch() {
@@ -206,9 +216,11 @@ function showLoading(elementId) {
     if(el) el.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px;"><i class="fas fa-spinner fa-spin"></i> 加载中...</td></tr>';
 }
 
-// 统一通知处理：如果 window.showNotification 存在（来自 common.js）则使用它，否则使用 alert
 function showNotification(msg, type) {
     if (window.showNotification) window.showNotification(msg, type);
     else alert(msg);
 }
-function showError(msg) { showNotification(msg, 'error'); }
+
+function showError(msg) {
+    showNotification(msg, 'error');
+}
