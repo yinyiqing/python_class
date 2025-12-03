@@ -1,39 +1,46 @@
 {% extends "base.html" %}
 
+{% block page_title %}客户管理{% endblock %}
+
 {% block content %}
-<div class="content-header">
-    <div class="header-title">
-        <h2><i class="fas fa-users"></i> 客户管理</h2>
-    </div>
-</div>
-
-<div class="content-section">
-    <div class="section-header">
-        <div class="search-box">
-            <input type="text" id="customer-search" placeholder="搜索姓名/手机/身份证..." class="form-control" style="width: 300px; display: inline-block;">
-            <button class="btn" onclick="searchCustomers()"><i class="fas fa-search"></i> 搜索</button>
-            <button class="btn btn-secondary" onclick="clearSearch()"><i class="fas fa-undo"></i> 重置</button>
+<div class="card" style="min-height: 80vh;">
+    <div class="toolbar-section" style="padding: 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color);">
+        <div class="search-group" style="display: flex; gap: 10px;">
+            <input type="text" id="customer-search" placeholder="搜索姓名/手机/身份证..." class="form-control" style="width: 300px;">
+            <button class="btn btn-primary" onclick="searchCustomers()">
+                <i class="fas fa-search"></i> 搜索
+            </button>
+            <button class="btn btn-secondary" onclick="clearSearch()">
+                <i class="fas fa-undo"></i> 重置
+            </button>
         </div>
-        <button class="btn" onclick="showAddCustomerModal()"><i class="fas fa-plus"></i> 添加客户</button>
+
+        <div class="action-group">
+            <button class="btn btn-primary" onclick="showAddCustomerModal()">
+                <i class="fas fa-plus"></i> 添加客户
+            </button>
+        </div>
     </div>
 
-    <div class="table-container">
-        <table>
+    <div class="card-body" style="padding: 0;">
+        <table class="table" style="width: 100%; border-collapse: collapse;">
             <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>姓名</th>
-                    <th>手机号</th>
-                    <th>身份证号</th>
-                    <th>注册时间</th>
-                    <th>操作</th>
+                <tr style="background-color: rgba(255,255,255,0.02); text-align: left;">
+                    <th style="padding: 15px 20px;">ID</th>
+                    <th style="padding: 15px 20px;">姓名</th>
+                    <th style="padding: 15px 20px;">手机号</th>
+                    <th style="padding: 15px 20px;">身份证号</th>
+                    <th style="padding: 15px 20px;">注册时间</th>
+                    <th style="padding: 15px 20px;">操作</th>
                 </tr>
             </thead>
             <tbody id="customers-table-body">
                 </tbody>
         </table>
-        <div id="no-customers" style="display:none; text-align:center; padding: 20px; color: var(--color-gray-light);">
-            暂无客户数据
+
+        <div id="no-customers" style="display: none; text-align: center; padding: 60px; color: var(--text-secondary);">
+            <i class="fas fa-users-slash" style="font-size: 48px; margin-bottom: 20px; opacity: 0.5;"></i>
+            <p>暂无客户数据</p>
         </div>
     </div>
 </div>
@@ -41,50 +48,48 @@
 <div id="customer-modal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
-            <h3 class="modal-title" id="customer-modal-title">添加客户</h3>
+            <h3 id="customer-modal-title">添加客户</h3>
             <button class="close-modal">&times;</button>
         </div>
-        <form id="customer-form" onsubmit="saveCustomer(event)">
-            <input type="hidden" id="edit-customer-id" name="id">
-
-            <div class="form-group">
-                <label for="name">姓名 <span style="color:var(--color-danger)">*</span></label>
-                <input type="text" id="name" name="name" class="form-control" required placeholder="请输入客户姓名">
-            </div>
-
-            <div class="form-group">
-                <label for="phone">手机号 <span style="color:var(--color-danger)">*</span></label>
-                <input type="text" id="phone" name="phone" class="form-control" required pattern="^1[3-9]\d{9}$" title="请输入有效的11位手机号" placeholder="请输入11位手机号">
-            </div>
-
-            <div class="form-group">
-                <label for="id_card">身份证号 <span style="color:var(--color-danger)">*</span></label>
-                <input type="text" id="id_card" name="id_card" class="form-control" required placeholder="请输入身份证号">
-            </div>
-
-            <div class="form-actions">
-                <button type="button" class="btn btn-secondary close-modal">取消</button>
-                <button type="submit" class="btn">保存</button>
-            </div>
-        </form>
+        <div class="modal-body">
+            <form id="customer-form">
+                <input type="hidden" id="edit-customer-id" name="id">
+                <div class="form-group">
+                    <label>姓名 <span style="color:red">*</span></label>
+                    <input type="text" id="name" name="name" class="form-control" placeholder="请输入客户姓名" required>
+                </div>
+                <div class="form-group">
+                    <label>手机号 <span style="color:red">*</span></label>
+                    <input type="text" id="phone" name="phone" class="form-control" placeholder="请输入11位手机号" required>
+                </div>
+                <div class="form-group">
+                    <label>身份证号 <span style="color:red">*</span></label>
+                    <input type="text" id="id_card" name="id_card" class="form-control" placeholder="请输入身份证号" required>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary close-modal">取消</button>
+                    <button type="submit" class="btn btn-primary" onclick="saveCustomer(event)">保存</button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 
 <div id="confirm-modal" class="modal">
     <div class="modal-content" style="max-width: 400px;">
         <div class="modal-header">
-            <h3 class="modal-title">确认操作</h3>
+            <h3>确认操作</h3>
             <button class="close-modal">&times;</button>
         </div>
         <div class="modal-body">
             <p id="confirm-message">确定要执行此操作吗？</p>
-        </div>
-        <div class="form-actions">
-            <button class="btn btn-secondary close-modal">取消</button>
-            <button class="btn btn-danger" id="confirm-delete-btn">确定删除</button>
+            <div class="form-actions">
+                <button class="btn btn-secondary close-modal">取消</button>
+                <button id="confirm-delete-btn" class="btn btn-danger">确定删除</button>
+            </div>
         </div>
     </div>
 </div>
 
-<script src="{{ url_for('static', filename='js/customers.js') }}"></script>
+<script src="/static/js/customers.js"></script>
 {% endblock %}

@@ -211,6 +211,16 @@ def api_get_customers():
     return jsonify(result)
 
 
+@app.route('/api/customer/<customer_id>', methods=['GET'])
+def api_get_customer(customer_id):
+    if not session.get('logged_in'):
+        return jsonify({'success': False, 'message': '请先登录'}), 401
+
+    # 调用 customer_manager 获取单个客户详情
+    result = customer_manager.get_customer_by_id(customer_id)
+    return jsonify(result)
+
+
 @app.route('/api/customer/create', methods=['POST'])
 def api_create_customer():
     if not session.get('logged_in'):
