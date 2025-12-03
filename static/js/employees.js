@@ -1,3 +1,5 @@
+// static/js/employees.js
+
 // 全局变量
 let currentTab = 'employees';
 let departmentsData = [];
@@ -286,8 +288,51 @@ function confirmDeleteEmployee(employeeId, employeeName) {
         `确定要删除员工 "${employeeName}" 吗？此操作不可恢复！`;
 
     document.getElementById('confirm-modal').style.display = 'flex';
-    document.getElementById('confirm-delete-btn').addEventListener('click', executeDelete);
+    // 移除之前的监听器以防止重复绑定（更安全的做法）
+    const btn = document.getElementById('confirm-delete-btn');
+    const newBtn = btn.cloneNode(true);
+    btn.parentNode.replaceChild(newBtn, btn);
+    newBtn.addEventListener('click', executeDelete);
+}
 
+// 执行删除 (提取为单独函数)
+async function executeDelete() {
+    if (!deleteItemId || !deleteItemType) return;
+
+    try {
+        let url, method = 'DELETE';
+
+        if (deleteItemType === 'employee') {
+            url = `/api/employee/delete/${deleteItemId}`;
+        } else if (deleteItemType === 'department') {
+            url = `/api/department/delete/${deleteItemId}`;
+        }
+
+        const response = await fetch(url, { method: method });
+        const result = await response.json();
+
+        if (result.success) {
+            showNotification('删除成功', 'success');
+            closeConfirmModal();
+
+            if (deleteItemType === 'employee') {
+                loadEmployees();
+            } else if (deleteItemType === 'department') {
+                loadDepartments();
+                if (currentTab === 'employees') {
+                    await loadDepartmentOptions();
+                }
+            }
+        } else {
+            showError(result.message);
+        }
+    } catch (error) {
+        console.error('删除失败:', error);
+        showError('删除失败');
+    }
+
+    deleteItemId = null;
+    deleteItemType = null;
 }
 
 // ==================== 部门管理功能 ====================
@@ -428,6 +473,11 @@ function confirmDeleteDepartment(departmentId, departmentName) {
         `确定要删除部门 "${departmentName}" 吗？此操作不可恢复！`;
 
     document.getElementById('confirm-modal').style.display = 'flex';
+    // 绑定删除执行
+    const btn = document.getElementById('confirm-delete-btn');
+    const newBtn = btn.cloneNode(true);
+    btn.parentNode.replaceChild(newBtn, btn);
+    newBtn.addEventListener('click', executeDelete);
 }
 
 // ==================== 统计功能 ====================
@@ -442,13 +492,14 @@ async function loadStatistics() {
             const stats = data.data;
 
             // 更新统计卡片
-            document.getElementById('total-employees').textContent = stats.total;
-            document.getElementById('active-employees').textContent = stats.active;
-            document.getElementById('terminated-employees').textContent = stats.terminated;
-            document.getElementById('active-rate').textContent = stats.active_rate.toFixed(1) + '%';
-
-            // 渲染部门分布
-            renderDepartmentChart(stats.by_department);
+            if(document.getElementById('total-employees')) {
+                document.getElementById('total-employees').textContent = stats.total;
+                document.getElementById('active-employees').textContent = stats.active;
+                document.getElementById('terminated-employees').textContent = stats.terminated;
+                document.getElementById('active-rate').textContent = stats.active_rate.toFixed(1) + '%';
+                // 渲染部门分布
+                renderDepartmentChart(stats.by_department);
+            }
         }
     } catch (error) {
         console.error('加载统计信息失败:', error);
@@ -458,18 +509,23 @@ async function loadStatistics() {
 // 渲染部门分布图表
 function renderDepartmentChart(departments) {
     const container = document.getElementById('department-chart');
+    if (!container) return;
 
     if (!departments || departments.length === 0) {
         container.innerHTML = '<p style="color: var(--color-gray-light); text-align: center;">暂无部门数据</p>';
         return;
     }
 
+    // 计算总人数用于百分比
+    let total = 0;
+    departments.forEach(dept => total += dept.count);
+
     let html = '<div style="display: flex; flex-direction: column; gap: 10px;">';
 
     departments.forEach(dept => {
         const count = dept.count || 0;
-        const percentage = count > 0 ? Math.round((count / total) * 100) : 0;
-        const width = Math.max(5, percentage * 2); // 最小宽度为5px
+        const percentage = total > 0 ? Math.round((count / total) * 100) : 0;
+        const width = Math.max(5, percentage); // 最小宽度
 
         html += `
             <div style="display: flex; align-items: center; gap: 15px;">
@@ -489,49 +545,6 @@ function renderDepartmentChart(departments) {
 }
 
 // ==================== 通用功能 ====================
-
-// 确认删除操作
-document.getElementById('confirm-delete-btn').addEventListener('click', async function() {
-    if (!deleteItemId || !deleteItemType) return;
-
-    try {
-        let url, method;
-
-        if (deleteItemType === 'employee') {
-            url = `/api/employee/delete/${deleteItemId}`;
-            method = 'DELETE';
-        } else if (deleteItemType === 'department') {
-            url = `/api/department/delete/${deleteItemId}`;
-            method = 'DELETE';
-        }
-
-        const response = await fetch(url, { method: method });
-        const result = await response.json();
-
-        if (result.success) {
-            showNotification('删除成功', 'success');
-            closeConfirmModal();
-
-            // 重新加载数据
-            if (deleteItemType === 'employee') {
-                loadEmployees();
-            } else if (deleteItemType === 'department') {
-                loadDepartments();
-                if (currentTab === 'employees') {
-                    await loadDepartmentOptions();
-                }
-            }
-        } else {
-            showError(result.message);
-        }
-    } catch (error) {
-        console.error('删除失败:', error);
-        showError('删除失败');
-    }
-
-    deleteItemId = null;
-    deleteItemType = null;
-});
 
 // 关闭确认模态框
 function closeConfirmModal() {
@@ -563,33 +576,32 @@ function showLoading(elementId) {
 
 // 格式化日期
 function formatDate(dateString) {
+    if (!dateString) return '-';
     const date = new Date(dateString);
     return date.toLocaleDateString('zh-CN');
 }
 
 // 格式化日期时间
 function formatDateTime(dateTimeString) {
+    if (!dateTimeString) return '-';
     const date = new Date(dateTimeString);
     return date.toLocaleString('zh-CN');
 }
 
-// 显示通知
+// [核心修复] 显示通知 - 增加保底逻辑
 function showNotification(message, type = 'success') {
-    // 使用common.js中的showNotification函数
-    window.showNotification(message, type);
+    // 检查 window.showNotification 是否存在 (common.js 是否加载)
+    if (typeof window.showNotification === 'function') {
+        window.showNotification(message, type);
+    } else {
+        // 如果 common.js 没加载，使用 alert 作为保底
+        // 只有 success 类型才 alert，避免 error 类型的 alert 太烦人（但这里为了确保看到反馈，都 alert）
+        alert(message);
+        console.log(`[${type}] ${message}`);
+    }
 }
 
 // 显示错误
 function showError(message) {
     showNotification(message, 'error');
-}
-
-// 导出员工数据
-function exportEmployees() {
-    showNotification('导出功能开发中', 'info');
-}
-
-// 显示成功
-function showSuccess(message) {
-    showNotification(message, 'success');
 }
