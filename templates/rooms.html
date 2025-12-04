@@ -3,14 +3,150 @@
 {% block page_title %}客房管理{% endblock %}
 
 {% block content %}
+<style>
+    /* 状态标签样式 */
+    .status-badge { padding: 4px 8px; border-radius: 4px; color: white; font-size: 12px; }
+    .status-occupied { background-color: #ff4d4f; } /* 红色-已入住 */
+    .status-reserved { background-color: #f1c40f; } /* 黄色-已预订 */
+    .status-free { background-color: #52c41a; }     /* 绿色-空闲 */
+
+    /* 辅助样式 */
+    .table-container { background: var(--bg-card); padding: 20px; border-radius: 8px; margin-top: 20px; }
+    .action-btn { margin-right: 5px; }
+
+    /* 搜索栏样式优化 */
+    .search-box { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .search-box .form-control { height: 36px; padding: 0 10px; }
+</style>
+
+<div class="content-header">
+    <div class="header-title">
+        <h2><i class="fas fa-bed"></i> 客房管理</h2>
+    </div>
+</div>
+
 <div class="content-section">
-    <div style="text-align: center; padding: 60px;">
-        <i class="fas fa-bed" style="font-size: 64px; color: var(--accent); margin-bottom: 20px;"></i>
-        <h2 style="margin-bottom: 15px; color: var(--light);">客房管理</h2>
-        <p style="color: var(--gray-light); font-size: 16px; margin-bottom: 30px;">此功能正在开发中</p>
-        <div style="display: inline-block; padding: 10px 20px; background: rgba(0, 198, 255, 0.1); border-radius: 8px; color: var(--accent);">
-            <i class="fas fa-tools"></i> 开发中
+    <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+        <div class="search-box">
+            <input type="text" id="room-search" placeholder="房号..." class="form-control" style="width: 100px;">
+
+            <select id="filter-status" class="form-control" style="width: 110px;">
+                <option value="">状态: 全部</option>
+                <option value="空闲">🟢 空闲</option>
+                <option value="已预订">🟡 已预订</option>
+                <option value="已入住">🔴 已入住</option>
+            </select>
+
+            <select id="filter-window" class="form-control" style="width: 110px;">
+                <option value="">窗户: 全部</option>
+                <option value="1">✔ 有窗</option>
+                <option value="0">✖ 无窗</option>
+            </select>
+
+            <input type="number" id="filter-capacity" placeholder="最少人数" class="form-control" style="width: 100px;" min="1">
+
+            <button class="btn btn-primary" onclick="searchRooms()">
+                <i class="fas fa-search"></i> 搜索
+            </button>
+            <button class="btn btn-secondary" onclick="resetSearch()">
+                <i class="fas fa-undo"></i> 重置
+            </button>
+        </div>
+
+        <button class="btn btn-success" onclick="showAddRoomModal()">
+            <i class="fas fa-plus"></i> 添加房间
+        </button>
+    </div>
+
+    <div class="table-container">
+        <table class="data-table" style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="border-bottom: 1px solid #444; text-align: left;">
+                    <th style="padding: 12px;">房号</th>
+                    <th style="padding: 12px;">类型</th>
+                    <th style="padding: 12px;">状态</th>
+                    <th style="padding: 12px;">靠窗</th>
+                    <th style="padding: 12px;">面积</th>
+                    <th style="padding: 12px;">人数</th>
+                    <th style="padding: 12px;">价格</th>
+                    <th style="padding: 12px;">操作</th>
+                </tr>
+            </thead>
+            <tbody id="rooms-table-body">
+                </tbody>
+        </table>
+
+        <div id="loading-msg" style="text-align: center; padding: 40px; color: #888;">
+            <i class="fas fa-spinner fa-spin"></i> 加载中...
+        </div>
+
+        <div id="no-data-msg" style="text-align: center; padding: 40px; color: #888; display: none;">
+            暂无房间数据
         </div>
     </div>
 </div>
+
+<div id="room-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="modal-title">添加房间</h3>
+            <span class="close-modal" style="cursor: pointer; font-size: 24px;">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="room-form" onsubmit="handleRoomSave(event)">
+                <input type="hidden" id="is_edit" value="false">
+
+                <div class="form-group">
+                    <label>房号 (三位数)</label>
+                    <input type="text" id="room_number" class="form-control" placeholder="例如: 101" required>
+                </div>
+
+                <div class="form-group">
+                    <label>房型</label>
+                    <select id="room_type" class="form-control">
+                        <option value="单人房">单人房</option>
+                        <option value="双人房">双人房</option>
+                        <option value="豪华套房">豪华套房</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>房间面积</label>
+                    <select id="area" class="form-control">
+                        <option value="23">23 平方米</option>
+                        <option value="40">40 平方米</option>
+                        <option value="50">50 平方米</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>可入住人数</label>
+                    <input type="number" id="capacity" class="form-control" value="2" min="1" max="10">
+                </div>
+
+                <div class="form-group">
+                    <label>价格 (元/晚)</label>
+                    <input type="number" id="price" class="form-control" required>
+                </div>
+
+                <div class="form-group" style="display: flex; align-items: center; gap: 10px; margin-top: 15px;">
+                    <input type="checkbox" id="has_window" style="width: auto;">
+                    <label for="has_window" style="margin: 0;">房间靠窗</label>
+                </div>
+
+                <div class="form-group">
+                    <label>描述</label>
+                    <textarea id="description" class="form-control" rows="2"></textarea>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary close-modal">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/rooms.js') }}"></script>
 {% endblock %}
