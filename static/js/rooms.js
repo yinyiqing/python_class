@@ -4,7 +4,7 @@ let allRooms = [];
 document.addEventListener('DOMContentLoaded', function() {
     loadRooms();
 
-    // 绑定关闭按钮
+    // 绑定模态框关闭按钮
     document.querySelectorAll('.close-modal').forEach(btn => {
         btn.addEventListener('click', () => {
             const modal = document.getElementById('room-modal');
@@ -18,11 +18,7 @@ async function loadRooms() {
     const loading = document.getElementById('loading-msg');
     const noData = document.getElementById('no-data-msg');
 
-    // 1. 安全检查：如果找不到元素，在控制台报错但不要卡死页面
-    if (!tbody || !loading) {
-        console.error("Critical Error: HTML elements not found!");
-        return;
-    }
+    if (!tbody || !loading) return;
 
     // 显示加载圈
     loading.style.display = 'block';
@@ -33,11 +29,11 @@ async function loadRooms() {
         const res = await fetch('/api/rooms/list');
         const data = await res.json();
 
-        // 隐藏加载圈
         loading.style.display = 'none';
 
         if (data.success) {
             allRooms = data.data;
+            // 加载完成后默认显示所有
             renderTable(allRooms);
         } else {
             alert('加载失败: ' + (data.message || '未知错误'));
@@ -45,11 +41,11 @@ async function loadRooms() {
     } catch (e) {
         loading.style.display = 'none';
         console.error("Fetch error:", e);
-        // 如果出错，至少让用户知道，而不是一直转圈
-        alert('网络请求失败，请检查后台服务是否启动');
+        alert('网络请求失败，请检查后台服务');
     }
 }
 
+// 核心渲染函数
 function renderTable(rooms) {
     const tbody = document.getElementById('rooms-table-body');
     const noData = document.getElementById('no-data-msg');
@@ -60,9 +56,10 @@ function renderTable(rooms) {
         if(noData) noData.style.display = 'block';
         return;
     }
+    if(noData) noData.style.display = 'none';
 
     rooms.forEach(room => {
-        // 状态颜色逻辑
+        // 1. 状态显示逻辑
         let statusHtml = `<span class="status-badge status-free">空闲</span>`;
         let btnsHtml = `
             <button class="btn btn-warning btn-sm action-btn" onclick="updateStatus('${room.room_number}', 'reserve')">预订</button>
@@ -85,7 +82,10 @@ function renderTable(rooms) {
             `;
         }
 
-        const windowIcon = room.has_window ? '<span style="color:#1890ff">✔ 有窗</span>' : '<span style="color:#aaa">无</span>';
+        // 2. 靠窗图标
+        const windowIcon = room.has_window
+            ? '<span style="color:#1890ff">✔ 有窗</span>'
+            : '<span style="color:#aaa">无</span>';
 
         const tr = document.createElement('tr');
         tr.style.borderBottom = "1px solid rgba(255,255,255,0.1)";
@@ -103,13 +103,52 @@ function renderTable(rooms) {
     });
 }
 
+// ========== 增强的搜索功能 ==========
+function searchRooms() {
+    // 获取所有筛选条件
+    const keyword = document.getElementById('room-search').value.trim();
+    const status = document.getElementById('filter-status').value;
+    const windowVal = document.getElementById('filter-window').value;
+    const capacity = document.getElementById('filter-capacity').value;
+
+    const filtered = allRooms.filter(r => {
+        // 1. 房号筛选 (模糊匹配)
+        const matchKeyword = !keyword || r.room_number.includes(keyword);
+
+        // 2. 状态筛选 (精确匹配)
+        const matchStatus = !status || r.status === status;
+
+        // 3. 窗户筛选 (注意: 数据库里可能是数字1/0，HTML value是字符串"1"/"0"，用 == 比较)
+        const matchWindow = windowVal === "" || r.has_window == windowVal;
+
+        // 4. 人数筛选 (大于等于)
+        // 例如搜索2人，则显示所有能住2人及以上的房间（2人、3人房）
+        const matchCapacity = !capacity || r.capacity >= parseInt(capacity);
+
+        return matchKeyword && matchStatus && matchWindow && matchCapacity;
+    });
+
+    renderTable(filtered);
+}
+
+// 重置搜索
+function resetSearch() {
+    document.getElementById('room-search').value = '';
+    document.getElementById('filter-status').value = '';
+    document.getElementById('filter-window').value = '';
+    document.getElementById('filter-capacity').value = '';
+
+    // 恢复显示所有房间
+    renderTable(allRooms);
+}
+// ===================================
+
 function showAddRoomModal() {
     const modal = document.getElementById('room-modal');
     document.getElementById('modal-title').innerText = "添加房间";
     document.getElementById('room-form').reset();
     document.getElementById('room_number').readOnly = false;
     document.getElementById('is_edit').value = 'false';
-    // 默认值
     document.getElementById('area').value = "23";
     document.getElementById('capacity').value = "2";
 
@@ -128,8 +167,6 @@ function openEditModal(roomNum) {
     document.getElementById('room_type').value = room.room_type;
     document.getElementById('price').value = room.price;
     document.getElementById('description').value = room.description || '';
-
-    // 填充新字段，防止为空
     document.getElementById('area').value = room.area || 23;
     document.getElementById('capacity').value = room.capacity || 2;
     document.getElementById('has_window').checked = (room.has_window === 1);
@@ -193,10 +230,4 @@ async function updateStatus(roomNum, action) {
     const result = await res.json();
     if (result.success) loadRooms();
     else alert(result.message);
-}
-
-function searchRooms() {
-    const key = document.getElementById('room-search').value.trim();
-    if(!key) { renderTable(allRooms); return; }
-    renderTable(allRooms.filter(r => r.room_number.includes(key)));
 }

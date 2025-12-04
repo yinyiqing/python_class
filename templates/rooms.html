@@ -13,6 +13,10 @@
     /* 辅助样式 */
     .table-container { background: var(--bg-card); padding: 20px; border-radius: 8px; margin-top: 20px; }
     .action-btn { margin-right: 5px; }
+
+    /* 搜索栏样式优化 */
+    .search-box { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .search-box .form-control { height: 36px; padding: 0 10px; }
 </style>
 
 <div class="content-header">
@@ -22,16 +26,33 @@
 </div>
 
 <div class="content-section">
-    <div class="section-header" style="display: flex; justify-content: space-between; align-items: center;">
-        <div class="search-box" style="display: flex; gap: 10px;">
-            <input type="text" id="room-search" placeholder="搜索房号..." class="form-control" style="width: 200px;">
+    <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+        <div class="search-box">
+            <input type="text" id="room-search" placeholder="房号..." class="form-control" style="width: 100px;">
+
+            <select id="filter-status" class="form-control" style="width: 110px;">
+                <option value="">状态: 全部</option>
+                <option value="空闲">🟢 空闲</option>
+                <option value="已预订">🟡 已预订</option>
+                <option value="已入住">🔴 已入住</option>
+            </select>
+
+            <select id="filter-window" class="form-control" style="width: 110px;">
+                <option value="">窗户: 全部</option>
+                <option value="1">✔ 有窗</option>
+                <option value="0">✖ 无窗</option>
+            </select>
+
+            <input type="number" id="filter-capacity" placeholder="最少人数" class="form-control" style="width: 100px;" min="1">
+
             <button class="btn btn-primary" onclick="searchRooms()">
                 <i class="fas fa-search"></i> 搜索
             </button>
-            <button class="btn btn-secondary" onclick="loadRooms()">
+            <button class="btn btn-secondary" onclick="resetSearch()">
                 <i class="fas fa-undo"></i> 重置
             </button>
         </div>
+
         <button class="btn btn-success" onclick="showAddRoomModal()">
             <i class="fas fa-plus"></i> 添加房间
         </button>
