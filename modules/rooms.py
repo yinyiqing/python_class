@@ -6,27 +6,11 @@ import random
 class Rooms:
     def __init__(self, db):
         self.db = db
-        # 1. 确保表存在
-        self.create_table_if_not_exists()
+        # 1. 确保表存在，表格在database.py中声明
         # 2. 检查旧表结构，如果缺少新字段则自动添加 (数据库迁移)
         self.check_and_update_schema()
         # 3. 如果是完全的新库，才生成演示数据
         self.init_sample_data()
-
-    def create_table_if_not_exists(self):
-        # 基础建表语句
-        sql = '''
-            CREATE TABLE IF NOT EXISTS rooms (
-                room_number TEXT PRIMARY KEY,
-                room_type TEXT NOT NULL,
-                has_window INTEGER,
-                has_breakfast INTEGER,
-                price REAL,
-                status TEXT DEFAULT '空闲',
-                description TEXT
-            )
-        '''
-        self.db.execute_update(sql)
 
     def check_and_update_schema(self):
         """自动检测并升级数据库表结构，添加面积和人数列"""

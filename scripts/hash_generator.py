@@ -13,6 +13,7 @@ FILES = [
     "app.py",
 
     "modules/auth.py",
+    "modules/config.py",
     "modules/database.py",
     "modules/departments.py",
     "modules/employee.py",

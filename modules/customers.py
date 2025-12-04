@@ -5,25 +5,8 @@ from datetime import datetime
 class Customers:
     def __init__(self, db):
         self.db = db
-        self.create_table_if_not_exists()
-        # [新增] 每次启动程序时，自动修复断层的 ID，确保从 1 开始
+        # self.create_table_if_not_exists() 数据表的初始化移动至database.py
         self.reorder_all_ids()
-
-    def create_table_if_not_exists(self):
-        """初始化表结构"""
-        sql = '''
-            CREATE TABLE IF NOT EXISTS customers (
-                id INTEGER PRIMARY KEY, 
-                name TEXT NOT NULL,
-                phone TEXT NOT NULL,
-                id_card TEXT NOT NULL,
-                created_at TEXT
-            )
-        '''
-        try:
-            self.db.execute_update(sql)
-        except Exception as e:
-            print(f"系统自检警告：初始化客户表失败: {str(e)}")
 
     def reorder_all_ids(self):
         """

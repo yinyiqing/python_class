@@ -1,19 +1,18 @@
 import os
 import sys
 
-
 sys.path.append(os.path.join(os.path.dirname(__file__), 'modules'))
 
 from flask import Flask, request, jsonify, render_template, redirect, url_for, session
 from modules.auth import Auth
 from modules.config import Config
+from modules.customers import Customers
 from modules.database import Database
 from modules.departments import Departments
 from modules.employee import Employee
-# [新增] 导入客户模块
-from modules.customers import Customers
-from modules.weather import Weather
 from modules.rooms import Rooms
+from modules.security import Security
+from modules.weather import Weather
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
@@ -22,14 +21,12 @@ config_manager = Config()
 db = Database()
 security_manager = Security()
 
-room_manager = Rooms(db)     # [新增]
 auth_manager = Auth()
+customer_manager = Customers(db)
 department_manager = Departments(db)
 employee_manager = Employee(db)
-# [新增] 初始化客户管理器
-customer_manager = Customers(db)
+room_manager = Rooms(db)
 weather_service = Weather()
-
 
 @app.route('/')
 def login():
@@ -39,7 +36,6 @@ def login():
     if session.get('logged_in'):
         return redirect(url_for('dashboard'))
     return render_template('login.html')
-
 
 @app.route('/login', methods=['POST'])
 def login_post():
@@ -52,7 +48,6 @@ def login_post():
         return jsonify({'success': True, 'message': '登录成功'})
     else:
         return jsonify({'success': False, 'message': '用户名或密码错误'})
-
 
 @app.route('/change-password', methods=['POST'])
 def change_password():
@@ -75,12 +70,10 @@ def change_password():
     success, message = auth_manager.update_password(current_password, new_password)
     return jsonify({'success': success, 'message': message})
 
-
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect(url_for('login') + '?logout=true')
-
 
 @app.route('/dashboard')
 def dashboard():
@@ -88,13 +81,11 @@ def dashboard():
         return redirect(url_for('login'))
     return render_template('dashboard.html', username=session.get('username'))
 
-
 @app.route('/employees')
 def employees():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
     return render_template('employees.html', username=session.get('username'))
-
 
 # 部门管理路由
 @app.route('/api/department/list', methods=['GET'])
@@ -105,7 +96,6 @@ def api_get_departments():
     result = department_manager.get_all_departments()  # 改为调用 department_manager
     return jsonify(result)
 
-
 @app.route('/api/department/create', methods=['POST'])
 def api_create_department():
     if not session.get('logged_in'):
@@ -114,7 +104,6 @@ def api_create_department():
     data = request.json
     success, message = department_manager.create_department(data)  # 改为调用 department_manager
     return jsonify({'success': success, 'message': message})
-
 
 @app.route('/api/department/update/<department_id>', methods=['PUT'])
 def api_update_department(department_id):
@@ -125,7 +114,6 @@ def api_update_department(department_id):
     success, message = department_manager.update_department(department_id, data)  # 改为调用 department_manager
     return jsonify({'success': success, 'message': message})
 
-
 @app.route('/api/department/delete/<department_id>', methods=['DELETE'])
 def api_delete_department(department_id):
     if not session.get('logged_in'):
@@ -133,7 +121,6 @@ def api_delete_department(department_id):
 
     success, message = department_manager.delete_department(department_id)  # 改为调用 department_manager
     return jsonify({'success': success, 'message': message})
-
 
 # 员工管理路由
 @app.route('/api/employee/create', methods=['POST'])
@@ -145,7 +132,6 @@ def api_create_employee():
     result = employee_manager.create_employee(data)
     return jsonify(result)
 
-
 @app.route('/api/employee/list', methods=['GET'])
 def api_get_employees():
     if not session.get('logged_in'):
@@ -155,7 +141,6 @@ def api_get_employees():
     result = employee_manager.get_all_employees()
     return jsonify(result)
 
-
 @app.route('/api/employee/<employee_id>', methods=['GET'])
 def api_get_employee(employee_id):
     if not session.get('logged_in'):
@@ -163,7 +148,6 @@ def api_get_employee(employee_id):
 
     result = employee_manager.get_employee(employee_id)
     return jsonify(result)
-
 
 @app.route('/api/employee/update/<employee_id>', methods=['PUT'])
 def api_update_employee(employee_id):
@@ -174,7 +158,6 @@ def api_update_employee(employee_id):
     result = employee_manager.update_employee(employee_id, data)
     return jsonify(result)
 
-
 @app.route('/api/employee/delete/<employee_id>', methods=['DELETE'])
 def api_delete_employee(employee_id):
     if not session.get('logged_in'):
@@ -182,7 +165,6 @@ def api_delete_employee(employee_id):
 
     result = employee_manager.delete_employee(employee_id)
     return jsonify(result)
-
 
 # 员工相关统计信息
 @app.route('/api/employee/statistics', methods=['GET'])
@@ -203,11 +185,6 @@ def api_get_employee_statistics():
             'message': f'获取统计信息失败: {str(e)}'
         })
 
-
-# ==========================================
-# [新增] 客户管理 API 路由 (Customer Routes)
-# ==========================================
-
 @app.route('/api/customer/list', methods=['GET'])
 def api_get_customers():
     if not session.get('logged_in'):
@@ -216,7 +193,6 @@ def api_get_customers():
     # 调用 Customers 类的 get_all_customers 方法
     result = customer_manager.get_all_customers()
     return jsonify(result)
-
 
 @app.route('/api/customer/<customer_id>', methods=['GET'])
 def api_get_customer(customer_id):
@@ -227,7 +203,6 @@ def api_get_customer(customer_id):
     result = customer_manager.get_customer_by_id(customer_id)
     return jsonify(result)
 
-
 @app.route('/api/customer/create', methods=['POST'])
 def api_create_customer():
     if not session.get('logged_in'):
@@ -236,7 +211,6 @@ def api_create_customer():
     data = request.json
     result = customer_manager.create_customer(data)
     return jsonify(result)
-
 
 @app.route('/api/customer/update/<customer_id>', methods=['PUT'])
 def api_update_customer(customer_id):
@@ -247,7 +221,6 @@ def api_update_customer(customer_id):
     result = customer_manager.update_customer(customer_id, data)
     return jsonify(result)
 
-
 @app.route('/api/customer/delete/<customer_id>', methods=['DELETE'])
 def api_delete_customer(customer_id):
     if not session.get('logged_in'):
@@ -255,7 +228,6 @@ def api_delete_customer(customer_id):
 
     result = customer_manager.delete_customer(customer_id)
     return jsonify(result)
-
 
 @app.route('/api/customer/search', methods=['GET'])
 def api_search_customers():
@@ -266,20 +238,11 @@ def api_search_customers():
     result = customer_manager.search_customers(keyword)
     return jsonify(result)
 
-
-# ==========================================
-# 结束客户管理 API 路由
-# ==========================================
-
 @app.route('/rooms')
 def rooms():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
     return render_template('rooms.html', username=session.get('username'))
-
-# ==========================================
-# [新增] 客房管理 API 路由
-# ==========================================
 
 @app.route('/api/rooms/list', methods=['GET'])
 def api_get_rooms():
@@ -313,13 +276,11 @@ def customers():
         return redirect(url_for('login'))
     return render_template('customers.html', username=session.get('username'))
 
-
 @app.route('/orders')
 def orders():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
     return render_template('orders.html', username=session.get('username'))
-
 
 @app.route('/analytics')
 def analytics():
@@ -327,13 +288,11 @@ def analytics():
         return redirect(url_for('login'))
     return render_template('analytics.html', username=session.get('username'))
 
-
 @app.route('/weather')
 def weather():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
     return render_template('weather.html', username=session.get('username'))
-
 
 @app.route('/api/weather')
 def get_weather():
@@ -373,13 +332,11 @@ def get_weather():
     else:
         return jsonify({'error': '天气数据获取失败'})
 
-
 @app.route('/theme')
 def theme():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
     return render_template('theme.html', username=session.get('username'))
-
 
 if __name__ == '__main__':
     app.run(port=5000, debug=True)

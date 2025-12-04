@@ -22,20 +22,20 @@ class Database:
                              description TEXT,
                              created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                              updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-                             )
-                         ''')
+                         )
+            ''')
 
             # 创建触发器，当部门表有信息更新时，更新 updated_at 字段
             conn.execute('''
                          CREATE TRIGGER IF NOT EXISTS update_departments_timestamp
-                             AFTER UPDATE ON departments
-                             FOR EACH ROW
-                             BEGIN
-                                 UPDATE departments
-                                 SET updated_at = CURRENT_TIMESTAMP
-                                 WHERE department_id = NEW.department_id;
-                             END;
-                         ''')
+                         AFTER UPDATE ON departments
+                         FOR EACH ROW
+                         BEGIN
+                             UPDATE departments
+                             SET updated_at = CURRENT_TIMESTAMP
+                             WHERE department_id = NEW.department_id;
+                         END;
+            ''')
 
             # 创建员工表
             conn.execute('''
@@ -56,8 +56,8 @@ class Database:
                              created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                              updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                              FOREIGN KEY (department_id) REFERENCES departments(department_id) ON DELETE SET NULL
-                             )
-                         ''')
+                         )
+            ''')
 
             # 创建触发器，当员工表有信息更新时，更新 updated_at 字段
             conn.execute('''
@@ -69,7 +69,7 @@ class Database:
                              SET updated_at = CURRENT_TIMESTAMP
                              WHERE employee_id = NEW.employee_id;
                          END;
-                         ''')
+            ''')
 
             # 创建触发器，当员工状态更新为离职时，自动设置离职时间为当前日期
             conn.execute('''
@@ -82,7 +82,55 @@ class Database:
                                  SET termination_date = DATE ('now'), updated_at = CURRENT_TIMESTAMP
                                  WHERE employee_id = NEW.employee_id;
                              END;
-                         ''')
+            ''')
+
+            # 创建客户表
+            conn.execute('''
+                         CREATE TABLE IF NOT EXISTS customers(
+                             id INTEGER PRIMARY KEY,
+                             name TEXT NOT NULL,
+                             phone TEXT NOT NULL,
+                             id_card TEXT NOT NULL,
+                             created_at TEXT
+                         )
+            ''')
+
+            # 创建房间表
+            conn.execute('''
+                         CREATE TABLE IF NOT EXISTS rooms(
+                             room_number TEXT PRIMARY KEY,
+                             room_type TEXT NOT NULL,
+                             has_window INTEGER,
+                             has_breakfast INTEGER,
+                             price REAL,
+                             status TEXT DEFAULT '空闲',
+                             description TEXT
+                         )
+            ''')
+
+            # 创建订单表
+            conn.execute('''
+                         CREATE TABLE IF NOT EXISTS orders(
+                             order_id VARCHAR(20) PRIMARY KEY,
+                             customer_id INTEGER NOT NULL,
+                             room_number TEXT NOT NULL,
+                             employee_id VARCHAR(20),
+                             check_in_date DATE NOT NULL,
+                             check_out_date DATE NOT NULL,
+                             days INTEGER NOT NULL,
+                             total_amount DECIMAL(10, 2) NOT NULL,
+                             paid_amount DECIMAL(10, 2) DEFAULT 0,
+                             payment_status VARCHAR(20) DEFAULT '未支付' CHECK(payment_status IN('未支付', '部分支付', '已支付', '已退款')),
+                             order_status VARCHAR(20) DEFAULT '预定中' CHECK(order_status IN('预定中', '已入住', '已完成', '已取消', '异常')),
+                             special_requests TEXT,
+                             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                             
+                             FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE RESTRICT,
+                             FOREIGN KEY (room_number) REFERENCES rooms(room_number) ON DELETE RESTRICT,
+                             FOREIGN KEY (employee_id) REFERENCES employees(employee_id) ON DELETE SET NULL
+                         )
+            ''')
 
             conn.commit()
             print("数据库初始化成功！")
