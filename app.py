@@ -1,6 +1,7 @@
 import os
 import sys
 
+
 sys.path.append(os.path.join(os.path.dirname(__file__), 'modules'))
 
 from flask import Flask, request, jsonify, render_template, redirect, url_for, session
@@ -12,6 +13,7 @@ from modules.employee import Employee
 # [新增] 导入客户模块
 from modules.customers import Customers
 from modules.weather import Weather
+from modules.rooms import Rooms
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
@@ -19,6 +21,7 @@ app.secret_key = os.urandom(24)
 config_manager = Config()
 db = Database()
 
+room_manager = Rooms(db)     # [新增]
 auth_manager = Auth()
 department_manager = Departments(db)
 employee_manager = Employee(db)
@@ -270,6 +273,35 @@ def rooms():
         return redirect(url_for('login'))
     return render_template('rooms.html', username=session.get('username'))
 
+# ==========================================
+# [新增] 客房管理 API 路由
+# ==========================================
+
+@app.route('/api/rooms/list', methods=['GET'])
+def api_get_rooms():
+    if not session.get('logged_in'): return jsonify({'success': False}), 401
+    return jsonify(room_manager.get_all_rooms())
+
+@app.route('/api/rooms/add', methods=['POST'])
+def api_add_room():
+    if not session.get('logged_in'): return jsonify({'success': False}), 401
+    return jsonify(room_manager.add_room(request.json))
+
+@app.route('/api/rooms/update/<room_number>', methods=['PUT'])
+def api_update_room(room_number):
+    if not session.get('logged_in'): return jsonify({'success': False}), 401
+    return jsonify(room_manager.update_room(room_number, request.json))
+
+@app.route('/api/rooms/delete/<room_number>', methods=['DELETE'])
+def api_delete_room(room_number):
+    if not session.get('logged_in'): return jsonify({'success': False}), 401
+    return jsonify(room_manager.delete_room(room_number))
+
+@app.route('/api/rooms/status', methods=['POST'])
+def api_room_status():
+    if not session.get('logged_in'): return jsonify({'success': False}), 401
+    # data: { room_number: "101", action: "checkin" }
+    return jsonify(room_manager.update_status(request.json.get('room_number'), request.json.get('action')))
 
 @app.route('/customers')
 def customers():
