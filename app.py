@@ -20,6 +20,7 @@ app.secret_key = os.urandom(24)
 
 config_manager = Config()
 db = Database()
+security_manager = Security()
 
 room_manager = Rooms(db)     # [新增]
 auth_manager = Auth()
@@ -32,6 +33,9 @@ weather_service = Weather()
 
 @app.route('/')
 def login():
+    is_valid, corrupted_files = security_manager.verify_integrity()
+    if not is_valid:
+        return render_template('security.html', corrupted_files=corrupted_files)
     if session.get('logged_in'):
         return redirect(url_for('dashboard'))
     return render_template('login.html')
