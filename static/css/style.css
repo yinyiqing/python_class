@@ -69,6 +69,24 @@ body {
     overflow-x: hidden;
 }
 
+/*搜索框*/
+.search-box {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 10px;
+    flex: 1;
+    max-width: 400px;
+}
+
+.search-box input {
+    flex: 1;
+    min-width: 180px;
+}
+
+.search-box button {
+    white-space: nowrap;
+}
+
 /* 布局容器 */
 .container {
     display: flex;
