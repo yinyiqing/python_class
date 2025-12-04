@@ -6,13 +6,13 @@
 from datetime import datetime
 import hashlib
 import json
-import os
+from pathlib import Path
 
+BASE_DIR = Path(__file__).resolve().parent.parent  
 FILES = [
     "app.py",
 
     "modules/auth.py",
-    # "modules/config.py",
     "modules/database.py",
     "modules/departments.py",
     "modules/employee.py",
@@ -39,7 +39,7 @@ FILES = [
 ]
 
 def calculate_file_hash(filepath):
-    full_path = os.path.join("..", filepath)
+    full_path = BASE_DIR / filepath
     with open(full_path, 'rb') as f:
         return hashlib.sha256(f.read()).hexdigest()
 
@@ -48,13 +48,16 @@ def generate_hashes():
     for filepath in FILES:
         try:
             hashes[filepath] = calculate_file_hash(filepath)
-            print(f"{filepath}")
+            print(filepath)
         except Exception as e:
             print(f"{filepath} - {e}")
-
     return hashes
 
 def save_hashes_json(hashes):
+    config_dir = BASE_DIR / "config"
+    config_dir.mkdir(exist_ok=True)
+
+    output_file = config_dir / "hashes.json"
     json_content = {
         "metadata": {
             "generated_at": datetime.now().isoformat(),
@@ -63,7 +66,7 @@ def save_hashes_json(hashes):
         "file_hashes": hashes
     }
 
-    with open("../config/hashes.json", "w", encoding="utf-8") as f:
+    with open(output_file, "w", encoding="utf-8") as f:
         json.dump(json_content, f, indent=2, ensure_ascii=False)
 
 if __name__ == "__main__":
