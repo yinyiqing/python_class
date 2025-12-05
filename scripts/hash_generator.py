@@ -17,14 +17,18 @@ FILES = [
     "modules/database.py",
     "modules/departments.py",
     "modules/employee.py",
+    "modules/orders.py",
     "modules/weather.py",
 
     "static/css/login.css",
     "static/css/style.css",
     "static/css/theme.css",
+
     "static/js/common.js",
+    "static/js/customers.js",
     "static/js/employees.js",
     "static/js/login.js",
+    "static/js/rooms.js"
 
     "templates/analytics.html",
     "templates/base.html",

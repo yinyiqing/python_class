@@ -2,15 +2,1085 @@
 
 {% block page_title %}订单管理{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* 订单状态样式 */
+    .status-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        min-width: 60px;
+        text-align: center;
+    }
+
+    .status-reserved { background: rgba(255, 193, 7, 0.2); color: var(--color-warning); }
+    .status-checked-in { background: rgba(0, 123, 255, 0.2); color: var(--color-accent); }
+    .status-completed { background: rgba(40, 167, 69, 0.2); color: var(--color-success); }
+    .status-cancelled { background: rgba(108, 117, 125, 0.2); color: var(--color-gray); }
+    .status-abnormal { background: rgba(220, 53, 69, 0.2); color: var(--color-danger); }
+
+    /* 支付状态样式 */
+    .payment-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        min-width: 70px;
+        text-align: center;
+    }
+
+    .payment-unpaid { background: rgba(220, 53, 69, 0.2); color: var(--color-danger); }
+    .payment-partial { background: rgba(255, 193, 7, 0.2); color: var(--color-warning); }
+    .payment-paid { background: rgba(40, 167, 69, 0.2); color: var(--color-success); }
+    .payment-refunded { background: rgba(108, 117, 125, 0.2); color: var(--color-gray); }
+
+    /* 筛选栏 */
+    .filter-bar {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .filter-group {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .filter-group label {
+        white-space: nowrap;
+    }
+
+    /* 统计卡片 */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+
+    .stat-card {
+        background: var(--color-secondary);
+        padding: 15px;
+        border-radius: 8px;
+        border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .stat-title {
+        font-size: 14px;
+        color: var(--color-gray-light);
+        margin-bottom: 5px;
+    }
+
+    .stat-value {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--color-light);
+    }
+
+    /* 金额样式 */
+    .amount {
+        font-weight: 600;
+        color: var(--color-accent);
+    }
+
+    /* 表格操作按钮 */
+    .action-buttons {
+        display: flex;
+        gap: 5px;
+    }
+
+    /* 搜索框容器 */
+    .search-container {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+    }
+
+    .search-container .form-control {
+        flex: 1;
+        min-width: 200px;
+    }
+
+    /* 日期范围选择器 */
+    .date-range {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .date-range input {
+        max-width: 150px;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="content-section">
-    <div style="text-align: center; padding: 60px;">
-        <i class="fas fa-clipboard-list" style="font-size: 64px; color: var(--accent); margin-bottom: 20px;"></i>
-        <h2 style="margin-bottom: 15px; color: var(--light);">订单管理</h2>
-        <p style="color: var(--gray-light); font-size: 16px; margin-bottom: 30px;">此功能正在开发中</p>
-        <div style="display: inline-block; padding: 10px 20px; background: rgba(0, 198, 255, 0.1); border-radius: 8px; color: var(--accent);">
-            <i class="fas fa-tools"></i> 开发中
+    <!-- 统计卡片 -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-title">今日订单</div>
+            <div class="stat-value" id="todayOrders">--</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-title">今日入住</div>
+            <div class="stat-value" id="todayCheckIns">--</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-title">今日退房</div>
+            <div class="stat-value" id="todayCheckOuts">--</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-title">今日收入</div>
+            <div class="stat-value">¥<span id="todayRevenue">--</span></div>
+        </div>
+    </div>
+
+    <!-- 筛选和搜索栏 -->
+    <div class="search-container">
+        <input type="text" class="form-control" id="searchInput" placeholder="搜索订单号、客户姓名、房间号...">
+        <select class="form-control" id="statusFilter" style="max-width: 150px;">
+            <option value="">全部状态</option>
+            <option value="预定中">预定中</option>
+            <option value="已入住">已入住</option>
+            <option value="已完成">已完成</option>
+            <option value="已取消">已取消</option>
+            <option value="异常">异常</option>
+        </select>
+        <select class="form-control" id="paymentFilter" style="max-width: 150px;">
+            <option value="">全部支付状态</option>
+            <option value="未支付">未支付</option>
+            <option value="部分支付">部分支付</option>
+            <option value="已支付">已支付</option>
+            <option value="已退款">已退款</option>
+        </select>
+        <div class="date-range">
+            <input type="date" class="form-control" id="startDate">
+            <span>至</span>
+            <input type="date" class="form-control" id="endDate">
+        </div>
+        <button class="btn" id="searchBtn">搜索</button>
+        <button class="btn" id="createOrderBtn">新建订单</button>
+        <button class="btn btn-secondary" id="exportBtn">导出数据</button>
+    </div>
+
+    <!-- 订单表格 -->
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>订单号</th>
+                    <th>客户信息</th>
+                    <th>房间信息</th>
+                    <th>入住/退房日期</th>
+                    <th>天数</th>
+                    <th>金额</th>
+                    <th>订单状态</th>
+                    <th>支付状态</th>
+                    <th>操作员工</th>
+                    <th>创建时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="ordersTableBody">
+                <!-- 订单数据将通过JavaScript动态加载 -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 分页 -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
+        <div id="paginationInfo"></div>
+        <div class="pagination">
+            <button class="btn btn-secondary" id="prevPage">上一页</button>
+            <span id="pageInfo" style="margin: 0 15px;"></span>
+            <button class="btn btn-secondary" id="nextPage">下一页</button>
         </div>
     </div>
 </div>
+
+<!-- 订单详情模态框 -->
+<div class="modal" id="orderDetailModal">
+    <div class="modal-content" style="max-width: 700px;">
+        <div class="modal-header">
+            <div class="modal-title">订单详情</div>
+            <button class="close-modal">&times;</button>
+        </div>
+        <div id="orderDetailContent">
+            <!-- 详情内容将通过JavaScript动态加载 -->
+        </div>
+    </div>
+</div>
+
+<!-- 新建/编辑订单模态框 -->
+<div class="modal" id="orderFormModal">
+    <div class="modal-content" style="max-width: 800px;">
+        <div class="modal-header">
+            <div class="modal-title" id="orderFormTitle">新建订单</div>
+            <button class="close-modal">&times;</button>
+        </div>
+        <form id="orderForm">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <!-- 左侧列 -->
+                <div>
+                    <div class="form-group">
+                        <label for="customer_id">客户 *</label>
+                        <select class="form-control" id="customer_id" required>
+                            <option value="">选择客户</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="room_number">房间 *</label>
+                        <select class="form-control" id="room_number" required>
+                            <option value="">选择房间</option>
+                        </select>
+                        <small id="roomAvailability" style="margin-top: 5px; display: block;"></small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="employee_id">负责员工</label>
+                        <select class="form-control" id="employee_id">
+                            <option value="">选择员工</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="special_requests">特殊要求</label>
+                        <textarea class="form-control" id="special_requests" rows="3"></textarea>
+                    </div>
+                </div>
+
+                <!-- 右侧列 -->
+                <div>
+                    <div class="form-group">
+                        <label for="check_in_date">入住日期 *</label>
+                        <input type="date" class="form-control" id="check_in_date" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="check_out_date">退房日期 *</label>
+                        <input type="date" class="form-control" id="check_out_date" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="order_status">订单状态</label>
+                        <select class="form-control" id="order_status">
+                            <option value="预定中">预定中</option>
+                            <option value="已入住">已入住</option>
+                            <option value="已完成">已完成</option>
+                            <option value="已取消">已取消</option>
+                            <option value="异常">异常</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="total_amount">总金额 (¥)</label>
+                        <input type="number" class="form-control" id="total_amount" step="0.01" min="0">
+                        <small style="color: var(--color-gray-light);">不填则自动计算</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="paid_amount">已付金额 (¥)</label>
+                        <input type="number" class="form-control" id="paid_amount" step="0.01" min="0" value="0">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="payment_status">支付状态</label>
+                        <select class="form-control" id="payment_status">
+                            <option value="未支付">未支付</option>
+                            <option value="部分支付">部分支付</option>
+                            <option value="已支付">已支付</option>
+                            <option value="已退款">已退款</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <input type="hidden" id="order_id">
+
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary close-modal">取消</button>
+                <button type="submit" class="btn">保存订单</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 支付模态框 -->
+<div class="modal" id="paymentModal">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <div class="modal-title">订单支付</div>
+            <button class="close-modal">&times;</button>
+        </div>
+        <div id="paymentInfo">
+            <div style="text-align: center; margin-bottom: 20px;">
+                <div style="font-size: 14px; color: var(--color-gray-light);">订单号</div>
+                <div style="font-size: 18px; font-weight: 600;" id="paymentOrderId"></div>
+            </div>
+
+            <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                    <span>订单总金额:</span>
+                    <span class="amount">¥<span id="paymentTotalAmount">0.00</span></span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                    <span>已付金额:</span>
+                    <span class="amount">¥<span id="paymentPaidAmount">0.00</span></span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-weight: 600;">
+                    <span>待付金额:</span>
+                    <span class="amount">¥<span id="paymentDueAmount">0.00</span></span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="paymentAmount">支付金额 (¥)</label>
+                <input type="number" class="form-control" id="paymentAmount" step="0.01" min="0" required>
+                <small style="color: var(--color-gray-light);">输入本次支付的金额</small>
+            </div>
+
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary close-modal">取消</button>
+                <button type="button" class="btn" id="confirmPaymentBtn">确认支付</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 确认删除模态框 -->
+<div class="modal" id="confirmDeleteModal">
+    <div class="modal-content" style="max-width: 400px;">
+        <div class="modal-header">
+            <div class="modal-title">确认删除</div>
+            <button class="close-modal">&times;</button>
+        </div>
+        <div style="text-align: center; padding: 20px;">
+            <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: var(--color-warning); margin-bottom: 15px;"></i>
+            <p style="margin-bottom: 20px;" id="deleteConfirmText">确定要删除这个订单吗？此操作不可撤销。</p>
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary close-modal">取消</button>
+                <button type="button" class="btn" id="confirmDeleteBtn" style="background: var(--color-danger);">确认删除</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let currentPage = 1;
+    let totalPages = 1;
+    let currentOrderId = '';
+    let customers = [];
+    let rooms = [];
+    let employees = [];
+
+    // DOM加载完成后初始化
+    document.addEventListener('DOMContentLoaded', function() {
+        initDatePickers();
+        loadCustomers();
+        loadRooms();
+        loadEmployees();
+        loadStatistics();
+        loadOrders();
+        initEventListeners();
+    });
+
+    function initDatePickers() {
+        const today = new Date().toISOString().split('T')[0];
+        const oneWeekAgo = new Date();
+        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+        document.getElementById('startDate').value = oneWeekAgo.toISOString().split('T')[0];
+        document.getElementById('endDate').value = today;
+    }
+
+    function loadStatistics() {
+        fetch('/api/orders/statistics')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const stats = data.data;
+                    document.getElementById('todayOrders').textContent = stats.today_stats.today_total || 0;
+                    document.getElementById('todayCheckIns').textContent = stats.today_stats.today_checked_in || 0;
+                    document.getElementById('todayCheckOuts').textContent = stats.today_stats.today_completed || 0;
+                    document.getElementById('todayRevenue').textContent = (stats.today_stats.today_total_amount || 0).toFixed(2);
+                }
+            })
+            .catch(error => console.error('加载统计信息失败:', error));
+    }
+
+    function loadCustomers() {
+        fetch('/api/customers')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    customers = data.data || [];
+                    const select = document.getElementById('customer_id');
+                    select.innerHTML = '<option value="">选择客户</option>';
+                    customers.forEach(customer => {
+                        const option = document.createElement('option');
+                        option.value = customer.id;
+                        option.textContent = `${customer.name} (${customer.phone})`;
+                        select.appendChild(option);
+                    });
+                }
+            })
+            .catch(error => console.error('加载客户列表失败:', error));
+    }
+
+    function loadRooms() {
+        fetch('/api/rooms/available')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    rooms = data.data || [];
+                    const select = document.getElementById('room_number');
+                    select.innerHTML = '<option value="">选择房间</option>';
+                    rooms.forEach(room => {
+                        const option = document.createElement('option');
+                        option.value = room.room_number;
+                        option.textContent = `${room.room_number} - ${room.room_type} (¥${room.price})`;
+                        select.appendChild(option);
+                    });
+                }
+            })
+            .catch(error => console.error('加载房间列表失败:', error));
+    }
+
+    function loadEmployees() {
+        fetch('/api/employees/active')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    employees = data.data || [];
+                    const select = document.getElementById('employee_id');
+                    select.innerHTML = '<option value="">选择员工</option>';
+                    employees.forEach(employee => {
+                        const option = document.createElement('option');
+                        option.value = employee.employee_id;
+                        option.textContent = `${employee.employee_name} (${employee.employee_id})`;
+                        select.appendChild(option);
+                    });
+                }
+            })
+            .catch(error => console.error('加载员工列表失败:', error));
+    }
+
+    function loadOrders(page = 1) {
+        const search = document.getElementById('searchInput').value;
+        const status = document.getElementById('statusFilter').value;
+        const paymentStatus = document.getElementById('paymentFilter').value;
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+
+        let url = `/api/orders?page=${page}`;
+        if (search) url += `&search=${encodeURIComponent(search)}`;
+        if (status) url += `&status=${encodeURIComponent(status)}`;
+        if (paymentStatus) url += `&payment_status=${encodeURIComponent(paymentStatus)}`;
+        if (startDate) url += `&start_date=${encodeURIComponent(startDate)}`;
+        if (endDate) url += `&end_date=${encodeURIComponent(endDate)}`;
+
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    renderOrdersTable(data.data);
+                    currentPage = page;
+                    totalPages = Math.ceil(data.total / 10) || 1;
+                    updatePagination();
+                } else {
+                    showNotification('加载订单失败: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('加载订单失败:', error);
+                showNotification('加载订单失败', 'error');
+            });
+    }
+
+    function renderOrdersTable(orders) {
+        const tbody = document.getElementById('ordersTableBody');
+        tbody.innerHTML = '';
+
+        if (!orders || orders.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="11" style="text-align: center; padding: 40px; color: var(--color-gray-light);">
+                        <i class="fas fa-clipboard-list" style="font-size: 48px; margin-bottom: 15px; display: block;"></i>
+                        <div>暂无订单数据</div>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        orders.forEach(order => {
+            const row = document.createElement('tr');
+
+            // 根据状态获取对应的CSS类
+            const statusClass = {
+                '预定中': 'status-reserved',
+                '已入住': 'status-checked-in',
+                '已完成': 'status-completed',
+                '已取消': 'status-cancelled',
+                '异常': 'status-abnormal'
+            }[order.order_status] || 'status-reserved';
+
+            const paymentClass = {
+                '未支付': 'payment-unpaid',
+                '部分支付': 'payment-partial',
+                '已支付': 'payment-paid',
+                '已退款': 'payment-refunded'
+            }[order.payment_status] || 'payment-unpaid';
+
+            row.innerHTML = `
+                <td><strong>${order.order_id}</strong></td>
+                <td>
+                    <div>${order.customer_name || '未知客户'}</div>
+                    <small style="color: var(--color-gray-light);">${order.customer_phone || ''}</small>
+                </td>
+                <td>
+                    <div>${order.room_number}</div>
+                    <small style="color: var(--color-gray-light);">${order.room_type || ''}</small>
+                </td>
+                <td>
+                    <div>${formatDate(order.check_in_date)}</div>
+                    <div>${formatDate(order.check_out_date)}</div>
+                </td>
+                <td>${order.days}天</td>
+                <td class="amount">¥${parseFloat(order.total_amount).toFixed(2)}</td>
+                <td><span class="status-badge ${statusClass}">${order.order_status}</span></td>
+                <td><span class="payment-badge ${paymentClass}">${order.payment_status}</span></td>
+                <td>${order.employee_name || '--'}</td>
+                <td>${formatDateTime(order.created_at)}</td>
+                <td>
+                    <div class="action-buttons">
+                        <button class="action-btn edit" onclick="viewOrderDetail('${order.order_id}')" title="查看详情">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="action-btn edit" onclick="editOrder('${order.order_id}')" title="编辑">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        ${order.payment_status !== '已支付' ? `
+                        <button class="action-btn edit" onclick="processPayment('${order.order_id}')" title="支付">
+                            <i class="fas fa-money-bill-wave"></i>
+                        </button>
+                        ` : ''}
+                        ${order.order_status !== '已完成' && order.order_status !== '已取消' ? `
+                        <button class="action-btn delete" onclick="confirmDeleteOrder('${order.order_id}')" title="删除">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                        ` : ''}
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+
+    function updatePagination() {
+        document.getElementById('pageInfo').textContent = `${currentPage} / ${totalPages}`;
+        document.getElementById('prevPage').disabled = currentPage <= 1;
+        document.getElementById('nextPage').disabled = currentPage >= totalPages;
+        document.getElementById('paginationInfo').textContent = `共 ${totalPages} 页`;
+    }
+
+    function formatDate(dateString) {
+        if (!dateString) return '--';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('zh-CN');
+    }
+
+    function formatDateTime(dateTimeString) {
+        if (!dateTimeString) return '--';
+        const date = new Date(dateTimeString);
+        return date.toLocaleString('zh-CN', {
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+
+    function viewOrderDetail(orderId) {
+        fetch(`/api/orders/${orderId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const order = data.data;
+                    document.getElementById('orderDetailContent').innerHTML = `
+                        <div style="padding: 20px;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                                <!-- 订单基本信息 -->
+                                <div>
+                                    <h3 style="margin-bottom: 15px; color: var(--color-light);">订单信息</h3>
+                                    <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;">
+                                        <div style="margin-bottom: 10px;">
+                                            <div style="font-size: 12px; color: var(--color-gray-light);">订单号</div>
+                                            <div style="font-size: 18px; font-weight: 600;">${order.order_id}</div>
+                                        </div>
+
+                                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                                            <div>
+                                                <div style="font-size: 12px; color: var(--color-gray-light);">订单状态</div>
+                                                <span class="status-badge ${getStatusClass(order.order_status)}">${order.order_status}</span>
+                                            </div>
+                                            <div>
+                                                <div style="font-size: 12px; color: var(--color-gray-light);">支付状态</div>
+                                                <span class="payment-badge ${getPaymentClass(order.payment_status)}">${order.payment_status}</span>
+                                            </div>
+                                        </div>
+
+                                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                            <div>
+                                                <div style="font-size: 12px; color: var(--color-gray-light);">入住日期</div>
+                                                <div>${formatDate(order.check_in_date)}</div>
+                                            </div>
+                                            <div>
+                                                <div style="font-size: 12px; color: var(--color-gray-light);">退房日期</div>
+                                                <div>${formatDate(order.check_out_date)}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 金额信息 -->
+                                <div>
+                                    <h3 style="margin-bottom: 15px; color: var(--color-light);">金额信息</h3>
+                                    <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;">
+                                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                                            <span>总金额:</span>
+                                            <span class="amount">¥${parseFloat(order.total_amount).toFixed(2)}</span>
+                                        </div>
+                                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                                            <span>已付金额:</span>
+                                            <span class="amount">¥${parseFloat(order.paid_amount).toFixed(2)}</span>
+                                        </div>
+                                        <div style="display: flex; justify-content: space-between; font-weight: 600; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1);">
+                                            <span>待付金额:</span>
+                                            <span class="amount">¥${(parseFloat(order.total_amount) - parseFloat(order.paid_amount)).toFixed(2)}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 客户和房间信息 -->
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
+                                <div>
+                                    <h3 style="margin-bottom: 15px; color: var(--color-light);">客户信息</h3>
+                                    <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;">
+                                        <div style="margin-bottom: 10px;">
+                                            <div style="font-size: 12px; color: var(--color-gray-light);">姓名</div>
+                                            <div>${order.customer_name || '--'}</div>
+                                        </div>
+                                        <div style="margin-bottom: 10px;">
+                                            <div style="font-size: 12px; color: var(--color-gray-light);">电话</div>
+                                            <div>${order.customer_phone || '--'}</div>
+                                        </div>
+                                        <div>
+                                            <div style="font-size: 12px; color: var(--color-gray-light);">身份证</div>
+                                            <div>${order.customer_id_card || '--'}</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <h3 style="margin-bottom: 15px; color: var(--color-light);">房间信息</h3>
+                                    <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;">
+                                        <div style="margin-bottom: 10px;">
+                                            <div style="font-size: 12px; color: var(--color-gray-light);">房间号</div>
+                                            <div>${order.room_number || '--'}</div>
+                                        </div>
+                                        <div style="margin-bottom: 10px;">
+                                            <div style="font-size: 12px; color: var(--color-gray-light);">房间类型</div>
+                                            <div>${order.room_type || '--'}</div>
+                                        </div>
+                                        <div>
+                                            <div style="font-size: 12px; color: var(--color-gray-light);">房间价格</div>
+                                            <div>¥${order.room_price || '0.00'}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 特殊要求 -->
+                            ${order.special_requests ? `
+                            <div style="margin-top: 20px;">
+                                <h3 style="margin-bottom: 15px; color: var(--color-light);">特殊要求</h3>
+                                <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;">
+                                    <div>${order.special_requests}</div>
+                                </div>
+                            </div>
+                            ` : ''}
+
+                            <!-- 员工信息 -->
+                            <div style="margin-top: 20px;">
+                                <h3 style="margin-bottom: 15px; color: var(--color-light);">员工信息</h3>
+                                <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;">
+                                    <div>${order.employee_name || '未指定员工'}</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    document.getElementById('orderDetailModal').style.display = 'flex';
+                } else {
+                    showNotification('获取订单详情失败: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('获取订单详情失败:', error);
+                showNotification('获取订单详情失败', 'error');
+            });
+    }
+
+    function editOrder(orderId) {
+        currentOrderId = orderId;
+        fetch(`/api/orders/${orderId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const order = data.data;
+                    document.getElementById('orderFormTitle').textContent = '编辑订单';
+                    document.getElementById('order_id').value = order.order_id;
+                    document.getElementById('customer_id').value = order.customer_id;
+                    document.getElementById('room_number').value = order.room_number;
+                    document.getElementById('employee_id').value = order.employee_id || '';
+                    document.getElementById('check_in_date').value = order.check_in_date;
+                    document.getElementById('check_out_date').value = order.check_out_date;
+                    document.getElementById('order_status').value = order.order_status;
+                    document.getElementById('payment_status').value = order.payment_status;
+                    document.getElementById('total_amount').value = order.total_amount;
+                    document.getElementById('paid_amount').value = order.paid_amount;
+                    document.getElementById('special_requests').value = order.special_requests || '';
+
+                    checkRoomAvailability(order.room_number, order.check_in_date, order.check_out_date, order.order_id);
+                    document.getElementById('orderFormModal').style.display = 'flex';
+                } else {
+                    showNotification('获取订单信息失败: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('获取订单信息失败:', error);
+                showNotification('获取订单信息失败', 'error');
+            });
+    }
+
+    function processPayment(orderId) {
+        currentOrderId = orderId;
+        fetch(`/api/orders/${orderId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const order = data.data;
+                    document.getElementById('paymentOrderId').textContent = order.order_id;
+                    document.getElementById('paymentTotalAmount').textContent = parseFloat(order.total_amount).toFixed(2);
+                    document.getElementById('paymentPaidAmount').textContent = parseFloat(order.paid_amount).toFixed(2);
+                    const dueAmount = parseFloat(order.total_amount) - parseFloat(order.paid_amount);
+                    document.getElementById('paymentDueAmount').textContent = dueAmount.toFixed(2);
+                    document.getElementById('paymentAmount').value = dueAmount > 0 ? dueAmount : 0;
+                    document.getElementById('paymentAmount').max = dueAmount;
+                    document.getElementById('paymentModal').style.display = 'flex';
+                } else {
+                    showNotification('获取订单信息失败: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('获取订单信息失败:', error);
+                showNotification('获取订单信息失败', 'error');
+            });
+    }
+
+    function confirmDeleteOrder(orderId) {
+        currentOrderId = orderId;
+        fetch(`/api/orders/${orderId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const order = data.data;
+                    document.getElementById('deleteConfirmText').innerHTML = `
+                        确定要删除订单 <strong>${order.order_id}</strong> 吗？<br>
+                        <small style="color: var(--color-gray-light);">客户：${order.customer_name || '未知'} | 房间：${order.room_number}</small>
+                    `;
+                    document.getElementById('confirmDeleteModal').style.display = 'flex';
+                }
+            })
+            .catch(error => {
+                console.error('获取订单信息失败:', error);
+                document.getElementById('confirmDeleteModal').style.display = 'flex';
+            });
+    }
+
+    function checkRoomAvailability(roomNumber, checkIn, checkOut, excludeOrderId = '') {
+        if (!roomNumber || !checkIn || !checkOut) return;
+
+        fetch(`/api/orders/check-availability?room_number=${roomNumber}&check_in=${checkIn}&check_out=${checkOut}&exclude_order_id=${excludeOrderId}`)
+            .then(response => response.json())
+            .then(data => {
+                const availabilityDiv = document.getElementById('roomAvailability');
+                if (data.success) {
+                    if (data.available) {
+                        availabilityDiv.innerHTML = '<span style="color: var(--color-success);"><i class="fas fa-check-circle"></i> 房间可用</span>';
+                    } else {
+                        availabilityDiv.innerHTML = `<span style="color: var(--color-danger);"><i class="fas fa-times-circle"></i> ${data.message}</span>`;
+                    }
+                } else {
+                    availabilityDiv.innerHTML = `<span style="color: var(--color-warning);"><i class="fas fa-exclamation-triangle"></i> ${data.message}</span>`;
+                }
+            })
+            .catch(error => {
+                console.error('检查房间可用性失败:', error);
+            });
+    }
+
+    function getStatusClass(status) {
+        const classMap = {
+            '预定中': 'status-reserved',
+            '已入住': 'status-checked-in',
+            '已完成': 'status-completed',
+            '已取消': 'status-cancelled',
+            '异常': 'status-abnormal'
+        };
+        return classMap[status] || 'status-reserved';
+    }
+
+    function getPaymentClass(paymentStatus) {
+        const classMap = {
+            '未支付': 'payment-unpaid',
+            '部分支付': 'payment-partial',
+            '已支付': 'payment-paid',
+            '已退款': 'payment-refunded'
+        };
+        return classMap[paymentStatus] || 'payment-unpaid';
+    }
+
+    function initEventListeners() {
+        // 搜索按钮
+        document.getElementById('searchBtn').addEventListener('click', () => {
+            currentPage = 1;
+            loadOrders();
+        });
+
+        // 搜索输入框回车键
+        document.getElementById('searchInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                currentPage = 1;
+                loadOrders();
+            }
+        });
+
+        // 筛选条件变化
+        document.getElementById('statusFilter').addEventListener('change', () => {
+            currentPage = 1;
+            loadOrders();
+        });
+
+        document.getElementById('paymentFilter').addEventListener('change', () => {
+            currentPage = 1;
+            loadOrders();
+        });
+
+        // 分页按钮
+        document.getElementById('prevPage').addEventListener('click', () => {
+            if (currentPage > 1) {
+                loadOrders(currentPage - 1);
+            }
+        });
+
+        document.getElementById('nextPage').addEventListener('click', () => {
+            if (currentPage < totalPages) {
+                loadOrders(currentPage + 1);
+            }
+        });
+
+        // 新建订单按钮
+        document.getElementById('createOrderBtn').addEventListener('click', () => {
+            currentOrderId = '';
+            document.getElementById('orderFormTitle').textContent = '新建订单';
+            document.getElementById('orderForm').reset();
+            document.getElementById('order_id').value = '';
+            document.getElementById('order_status').value = '预定中';
+            document.getElementById('payment_status').value = '未支付';
+            document.getElementById('paid_amount').value = '0';
+            document.getElementById('roomAvailability').innerHTML = '';
+            document.getElementById('orderFormModal').style.display = 'flex';
+        });
+
+        // 导出按钮
+        document.getElementById('exportBtn').addEventListener('click', () => {
+            const search = document.getElementById('searchInput').value;
+            const status = document.getElementById('statusFilter').value;
+            const paymentStatus = document.getElementById('paymentFilter').value;
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+
+            let url = '/api/orders/export?';
+            if (search) url += `search=${encodeURIComponent(search)}&`;
+            if (status) url += `status=${encodeURIComponent(status)}&`;
+            if (paymentStatus) url += `payment_status=${encodeURIComponent(paymentStatus)}&`;
+            if (startDate) url += `start_date=${encodeURIComponent(startDate)}&`;
+            if (endDate) url += `end_date=${encodeURIComponent(endDate)}&`;
+
+            window.open(url, '_blank');
+        });
+
+        // 订单表单提交
+        document.getElementById('orderForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const formData = {
+                customer_id: document.getElementById('customer_id').value,
+                room_number: document.getElementById('room_number').value,
+                employee_id: document.getElementById('employee_id').value || null,
+                check_in_date: document.getElementById('check_in_date').value,
+                check_out_date: document.getElementById('check_out_date').value,
+                order_status: document.getElementById('order_status').value,
+                payment_status: document.getElementById('payment_status').value,
+                total_amount: document.getElementById('total_amount').value || null,
+                paid_amount: document.getElementById('paid_amount').value || 0,
+                special_requests: document.getElementById('special_requests').value || null
+            };
+
+            const orderId = document.getElementById('order_id').value;
+            const url = orderId ? `/api/orders/${orderId}` : '/api/orders';
+            const method = orderId ? 'PUT' : 'POST';
+
+            fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                    document.getElementById('orderFormModal').style.display = 'none';
+                    loadOrders();
+                    loadStatistics();
+                } else {
+                    showNotification('保存失败: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('保存订单失败:', error);
+                showNotification('保存订单失败', 'error');
+            });
+        });
+
+        // 确认支付按钮
+        document.getElementById('confirmPaymentBtn').addEventListener('click', () => {
+            const paymentAmount = parseFloat(document.getElementById('paymentAmount').value);
+            if (!paymentAmount || paymentAmount <= 0) {
+                showNotification('请输入有效的支付金额', 'error');
+                return;
+            }
+
+            fetch(`/api/orders/${currentOrderId}/payment`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ payment_amount: paymentAmount })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                    document.getElementById('paymentModal').style.display = 'none';
+                    loadOrders();
+                    loadStatistics();
+                } else {
+                    showNotification('支付失败: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('支付失败:', error);
+                showNotification('支付失败', 'error');
+            });
+        });
+
+        // 确认删除按钮
+        document.getElementById('confirmDeleteBtn').addEventListener('click', () => {
+            fetch(`/api/orders/${currentOrderId}`, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                    document.getElementById('confirmDeleteModal').style.display = 'none';
+                    loadOrders();
+                    loadStatistics();
+                } else {
+                    showNotification('删除失败: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('删除失败:', error);
+                showNotification('删除失败', 'error');
+            });
+        });
+
+        // 房间选择和日期变化时检查可用性
+        document.getElementById('room_number').addEventListener('change', () => {
+            const roomNumber = document.getElementById('room_number').value;
+            const checkIn = document.getElementById('check_in_date').value;
+            const checkOut = document.getElementById('check_out_date').value;
+            const orderId = document.getElementById('order_id').value;
+
+            if (roomNumber && checkIn && checkOut) {
+                checkRoomAvailability(roomNumber, checkIn, checkOut, orderId);
+            }
+        });
+
+        document.getElementById('check_in_date').addEventListener('change', () => {
+            const roomNumber = document.getElementById('room_number').value;
+            const checkIn = document.getElementById('check_in_date').value;
+            const checkOut = document.getElementById('check_out_date').value;
+            const orderId = document.getElementById('order_id').value;
+
+            if (roomNumber && checkIn && checkOut) {
+                checkRoomAvailability(roomNumber, checkIn, checkOut, orderId);
+            }
+        });
+
+        document.getElementById('check_out_date').addEventListener('change', () => {
+            const roomNumber = document.getElementById('room_number').value;
+            const checkIn = document.getElementById('check_in_date').value;
+            const checkOut = document.getElementById('check_out_date').value;
+            const orderId = document.getElementById('order_id').value;
+
+            if (roomNumber && checkIn && checkOut) {
+                checkRoomAvailability(roomNumber, checkIn, checkOut, orderId);
+            }
+        });
+
+        // 关闭模态框
+        document.querySelectorAll('.close-modal').forEach(button => {
+            button.addEventListener('click', function() {
+                this.closest('.modal').style.display = 'none';
+            });
+        });
+
+        // 点击模态框外部关闭
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.style.display = 'none';
+                }
+            });
+        });
+    }
+</script>
 {% endblock %}

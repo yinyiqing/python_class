@@ -120,7 +120,7 @@ class Database:
                              days INTEGER NOT NULL,
                              total_amount DECIMAL(10, 2) NOT NULL,
                              paid_amount DECIMAL(10, 2) DEFAULT 0,
-                             payment_status VARCHAR(20) DEFAULT '未支付' CHECK(payment_status IN('未支付', '部分支付', '已支付', '已退款')),
+                             payment_status VARCHAR(20) DEFAULT '未支付' CHECK(payment_status IN('未支付', '已支付', '已退款')),
                              order_status VARCHAR(20) DEFAULT '预定中' CHECK(order_status IN('预定中', '已入住', '已完成', '已取消', '异常')),
                              special_requests TEXT,
                              created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -130,6 +130,18 @@ class Database:
                              FOREIGN KEY (room_number) REFERENCES rooms(room_number) ON DELETE RESTRICT,
                              FOREIGN KEY (employee_id) REFERENCES employees(employee_id) ON DELETE SET NULL
                          )
+            ''')
+
+            # 创建触发器，当订单表有信息更新时，更新 updated_at 字段
+            conn.execute('''
+                         CREATE TRIGGER IF NOT EXISTS update_order_timestamp
+                         AFTER UPDATE ON orders
+                         FOR EACH ROW
+                         BEGIN
+                             UPDATE orders
+                             SET updated_at = CURRENT_TIMESTAMP
+                             WHERE order_id = NEW.order_id;
+                         END;
             ''')
 
             conn.commit()

@@ -10,6 +10,7 @@ from modules.customers import Customers
 from modules.database import Database
 from modules.departments import Departments
 from modules.employee import Employee
+from modules.orders import Orders
 from modules.rooms import Rooms
 from modules.security import Security
 from modules.weather import Weather
@@ -25,6 +26,7 @@ auth_manager = Auth()
 customer_manager = Customers(db)
 department_manager = Departments(db)
 employee_manager = Employee(db)
+orders_manager = Orders(db)
 room_manager = Rooms(db)
 weather_service = Weather()
 
@@ -281,6 +283,273 @@ def orders():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
     return render_template('orders.html', username=session.get('username'))
+
+# 订单管理API路由
+@app.route('/api/orders', methods=['GET'])
+def api_get_orders():
+    if not session.get('logged_in'):
+        return jsonify({'success': False, 'message': '请先登录'}), 401
+
+    try:
+        # 获取查询参数
+        page = request.args.get('page', 1, type=int)
+        search = request.args.get('search', '')
+        status = request.args.get('status', '')
+        payment_status = request.args.get('payment_status', '')
+        start_date = request.args.get('start_date', '')
+        end_date = request.args.get('end_date', '')
+
+        # 调用 orders_manager 获取订单
+        # 由于 orders_manager 目前没有分页功能，先获取所有订单
+        result = orders_manager.get_all_orders()
+
+        if result['success']:
+            orders_data = result['data']
+
+            # 应用筛选
+            filtered_orders = orders_data
+
+            if search:
+                search_lower = search.lower()
+                filtered_orders = [
+                    order for order in filtered_orders
+                    if (search_lower in order.get('order_id', '').lower() or
+                        search_lower in order.get('customer_name', '').lower() or
+                        search_lower in order.get('room_number', '').lower() or
+                        search_lower in order.get('customer_phone', '').lower())
+                ]
+
+            if status:
+                filtered_orders = [
+                    order for order in filtered_orders
+                    if order.get('order_status') == status
+                ]
+
+            if payment_status:
+                filtered_orders = [
+                    order for order in filtered_orders
+                    if order.get('payment_status') == payment_status
+                ]
+
+            if start_date:
+                filtered_orders = [
+                    order for order in filtered_orders
+                    if order.get('check_in_date') >= start_date
+                ]
+
+            if end_date:
+                filtered_orders = [
+                    order for order in filtered_orders
+                    if order.get('check_out_date') <= end_date
+                ]
+
+            # 简单分页（每次10条）
+            page_size = 10
+            start_idx = (page - 1) * page_size
+            end_idx = start_idx + page_size
+            paged_orders = filtered_orders[start_idx:end_idx]
+
+            return jsonify({
+                'success': True,
+                'data': paged_orders,
+                'total': len(filtered_orders),
+                'page': page,
+                'page_size': page_size,
+                'message': f'获取到{len(paged_orders)}个订单'
+            })
+        else:
+            return jsonify(result)
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'获取订单列表失败: {str(e)}'
+        })
+
+@app.route('/api/orders/<order_id>', methods=['GET'])
+def api_get_order(order_id):
+    if not session.get('logged_in'):
+        return jsonify({'success': False, 'message': '请先登录'}), 401
+
+    result = orders_manager.get_order(order_id)
+    return jsonify(result)
+
+@app.route('/api/orders', methods=['POST'])
+def api_create_order():
+    if not session.get('logged_in'):
+        return jsonify({'success': False, 'message': '请先登录'}), 401
+
+    try:
+        data = request.json
+        result = orders_manager.create_order(data)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'创建订单失败: {str(e)}'
+        })
+
+@app.route('/api/orders/<order_id>', methods=['PUT'])
+def api_update_order(order_id):
+    if not session.get('logged_in'):
+        return jsonify({'success': False, 'message': '请先登录'}), 401
+
+    try:
+        data = request.json
+        result = orders_manager.update_order(order_id, data)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'更新订单失败: {str(e)}'
+        })
+
+@app.route('/api/orders/<order_id>', methods=['DELETE'])
+def api_delete_order(order_id):
+    if not session.get('logged_in'):
+        return jsonify({'success': False, 'message': '请先登录'}), 401
+
+    result = orders_manager.delete_order(order_id)
+    return jsonify(result)
+
+@app.route('/api/orders/statistics', methods=['GET'])
+def api_get_order_statistics():
+    if not session.get('logged_in'):
+        return jsonify({'success': False, 'message': '请先登录'}), 401
+
+    try:
+        statistics = orders_manager.get_order_statistics()
+        return jsonify({
+            'success': True,
+            'data': statistics,
+            'message': '统计信息获取成功'
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'获取统计信息失败: {str(e)}'
+        })
+
+@app.route('/api/orders/check-availability', methods=['GET'])
+def api_check_room_availability():
+    if not session.get('logged_in'):
+        return jsonify({'success': False, 'message': '请先登录'}), 401
+
+    try:
+        room_number = request.args.get('room_number')
+        check_in = request.args.get('check_in')
+        check_out = request.args.get('check_out')
+        exclude_order_id = request.args.get('exclude_order_id', '')
+
+        if not all([room_number, check_in, check_out]):
+            return jsonify({
+                'success': False,
+                'message': '缺少必要参数'
+            })
+
+        result = orders_manager.check_room_availability(
+            room_number, check_in, check_out, exclude_order_id
+        )
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'检查房间可用性失败: {str(e)}'
+        })
+
+@app.route('/api/orders/<order_id>/payment', methods=['POST'])
+def api_process_payment(order_id):
+    if not session.get('logged_in'):
+        return jsonify({'success': False, 'message': '请先登录'}), 401
+
+    try:
+        data = request.json
+        payment_amount = data.get('payment_amount', 0)
+
+        if payment_amount <= 0:
+            return jsonify({
+                'success': False,
+                'message': '支付金额必须大于0'
+            })
+
+        result = orders_manager.calculate_payment(order_id, payment_amount)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'支付处理失败: {str(e)}'
+        })
+
+@app.route('/api/orders/export', methods=['GET'])
+def api_export_orders():
+    if not session.get('logged_in'):
+        return jsonify({'success': False, 'message': '请先登录'}), 401
+
+    try:
+        # 获取筛选参数（与获取订单列表相同）
+        search = request.args.get('search', '')
+        status = request.args.get('status', '')
+        payment_status = request.args.get('payment_status', '')
+        start_date = request.args.get('start_date', '')
+        end_date = request.args.get('end_date', '')
+
+        # 获取所有订单
+        result = orders_manager.get_all_orders()
+
+        if not result['success']:
+            return jsonify(result)
+
+        orders_data = result['data']
+
+        # 应用筛选
+        filtered_orders = orders_data
+
+        if search:
+            search_lower = search.lower()
+            filtered_orders = [
+                order for order in filtered_orders
+                if (search_lower in order.get('order_id', '').lower() or
+                    search_lower in order.get('customer_name', '').lower() or
+                    search_lower in order.get('room_number', '').lower() or
+                    search_lower in order.get('customer_phone', '').lower())
+            ]
+
+        if status:
+            filtered_orders = [
+                order for order in filtered_orders
+                if order.get('order_status') == status
+            ]
+
+        if payment_status:
+            filtered_orders = [
+                order for order in filtered_orders
+                if order.get('payment_status') == payment_status
+            ]
+
+        if start_date:
+            filtered_orders = [
+                order for order in filtered_orders
+                if order.get('check_in_date') >= start_date
+            ]
+
+        if end_date:
+            filtered_orders = [
+                order for order in filtered_orders
+                if order.get('check_out_date') <= end_date
+            ]
+
+        # 返回筛选后的数据
+        return jsonify({
+            'success': True,
+            'data': filtered_orders,
+            'message': f'导出{len(filtered_orders)}条订单数据'
+        })
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'导出订单失败: {str(e)}'
+        })
 
 @app.route('/analytics')
 def analytics():
