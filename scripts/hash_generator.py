@@ -12,6 +12,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 FILES = [
     "app.py",
 
+    "modules/analytics.py",
     "modules/auth.py",
     "modules/config.py",
     "modules/database.py",
@@ -24,11 +25,12 @@ FILES = [
     "static/css/style.css",
     "static/css/theme.css",
 
+    "static/js/analytics.js",
     "static/js/common.js",
     "static/js/customers.js",
     "static/js/employees.js",
     "static/js/login.js",
-    "static/js/rooms.js"
+    "static/js/rooms.js",
 
     "templates/analytics.html",
     "templates/base.html",

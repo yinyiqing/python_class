@@ -4,6 +4,7 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), 'modules'))
 
 from flask import Flask, request, jsonify, render_template, redirect, url_for, session
+from modules.analytics import Analytics
 from modules.auth import Auth
 from modules.config import Config
 from modules.customers import Customers
@@ -22,6 +23,7 @@ config_manager = Config()
 db = Database()
 security_manager = Security()
 
+analytics_manager = Analytics(db)
 auth_manager = Auth()
 customer_manager = Customers(db)
 department_manager = Departments(db)
@@ -556,6 +558,115 @@ def analytics():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
     return render_template('analytics.html', username=session.get('username'))
+
+@app.route('/api/analytics/dashboard', methods=['GET'])
+def api_get_dashboard():
+    if not session.get('logged_in'):
+        return jsonify({'success': False, 'message': '请先登录'}), 401
+
+    result = analytics_manager.get_dashboard_summary()
+    return jsonify(result)
+
+@app.route('/api/analytics/employees', methods=['GET'])
+def api_get_employee_stats():
+    if not session.get('logged_in'):
+        return jsonify({'success': False, 'message': '请先登录'}), 401
+
+    result = analytics_manager.get_employee_statistics()
+    return jsonify(result)
+
+@app.route('/api/analytics/orders', methods=['GET'])
+def api_get_order_stats():
+    if not session.get('logged_in'):
+        return jsonify({'success': False, 'message': '请先登录'}), 401
+
+    result = analytics_manager.get_order_statistics()
+    return jsonify(result)
+
+@app.route('/api/analytics/customers', methods=['GET'])
+def api_get_customer_stats():
+    if not session.get('logged_in'):
+        return jsonify({'success': False, 'message': '请先登录'}), 401
+
+    result = analytics_manager.get_customer_statistics()
+    return jsonify(result)
+
+@app.route('/api/analytics/rooms', methods=['GET'])
+def api_get_room_stats():
+    if not session.get('logged_in'):
+        return jsonify({'success': False, 'message': '请先登录'}), 401
+
+    result = analytics_manager.get_room_statistics()
+    return jsonify(result)
+
+@app.route('/api/analytics/revenue', methods=['GET'])
+def api_get_revenue_analysis():
+    if not session.get('logged_in'):
+        return jsonify({'success': False, 'message': '请先登录'}), 401
+
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+
+    result = analytics_manager.get_revenue_analysis(start_date, end_date)
+    return jsonify(result)
+
+@app.route('/api/analytics/chart', methods=['GET'])
+def api_generate_chart():
+    if not session.get('logged_in'):
+        return jsonify({'success': False, 'message': '请先登录'}), 401
+
+    chart_type = request.args.get('type', '')
+    if not chart_type:
+        return jsonify({'success': False, 'message': '图表类型不能为空'}), 400
+
+    # 解析额外参数
+    params = {}
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+
+    if start_date:
+        params['start_date'] = start_date
+    if end_date:
+        params['end_date'] = end_date
+
+    result = analytics_manager.generate_chart_data(chart_type, params)
+    return jsonify(result)
+
+@app.route('/api/analytics/export', methods=['GET'])
+def api_export_stats():
+    if not session.get('logged_in'):
+        return jsonify({'success': False, 'message': '请先登录'}), 401
+
+    export_type = request.args.get('type', 'json')
+
+    result = analytics_manager.export_statistics(export_type)
+    return jsonify(result)
+
+@app.route('/api/analytics/report', methods=['GET'])
+def api_get_full_report():
+    if not session.get('logged_in'):
+        return jsonify({'success': False, 'message': '请先登录'}), 401
+
+    # 获取所有统计数据
+    dashboard_result = analytics_manager.get_dashboard_summary()
+
+    if not dashboard_result['success']:
+        return jsonify(dashboard_result)
+
+    # 生成报告
+    report = {
+        'success': True,
+        'data': dashboard_result['data'],
+        'charts': {
+            'employee_dept': analytics_manager.generate_chart_data('employee_dept'),
+            'order_status': analytics_manager.generate_chart_data('order_status'),
+            'room_type': analytics_manager.generate_chart_data('room_type'),
+            'revenue_trend': analytics_manager.generate_chart_data('revenue_trend')
+        },
+        'message': '综合报告生成完成'
+    }
+
+    return jsonify(report)
 
 @app.route('/weather')
 def weather():

@@ -1,10 +1,11 @@
 {
   "metadata": {
-    "generated_at": "2025-12-06T03:54:57.190794",
-    "file_count": 25
+    "generated_at": "2025-12-06T05:13:31.040663",
+    "file_count": 29
   },
   "file_hashes": {
-    "app.py": "1607f0a1a9eb7934481611253df709d250817edb0b3ba223d6cdf73df49e9bfe",
+    "app.py": "314e33bf6642eec194255264d2b988db4604102ca5bc3169443e92db95680a64",
+    "modules/analytics.py": "326542e1c28943d1c4c8ad87f35f5803f41fd85d7dc0cbb6500b8f7485123330",
     "modules/auth.py": "18c718c0881def55c102f57961ec25bb844b0cdaf850d04408e8f1a2db443fcd",
     "modules/config.py": "e475c5640cabd22c0e8784b14edf4925a014430168db8b2e891f96f40d8208a5",
     "modules/database.py": "a69070e550025c9b6f9fa44259726055fed343a4e77646fffd1ff466ab7f4442",
@@ -15,10 +16,13 @@
     "static/css/login.css": "46b9f5670da14e6a7f1dfdd4d49eae217fca25735d26f50f57e07f2d06141630",
     "static/css/style.css": "44f881becff179ec662923cfa9f099570f715b4a3cddc010bf395087dac1aad6",
     "static/css/theme.css": "928ed7c75f5cbf27f57f8c8f4ee24448b8dc4f02725366cd6cfa46f2e2390f75",
+    "static/js/analytics.js": "2aad8b61ff32b6ebd236db2ba38ab2657dfaed4276477c4c68449ff9e3acafca",
     "static/js/common.js": "15aa5465aaf1b2c26f0bcf271eefc890beb47bb9327d4f3013db7a34cf2019ce",
     "static/js/customers.js": "3f18f08b1faafc4db58a53606d948367bff830c96b7d1547882b128b7f849958",
     "static/js/employees.js": "3f1e7cacb208c51280dcc21dd82c0744ae0e037e1f39e97b3d105b68603f040d",
     "static/js/login.js": "362d1b9e0790aa99a66296656dca6f61c6105eaa3b84fc5ffc37355093ac28a2",
+    "static/js/rooms.js": "f3d2ee163f53b33397a5733ed094b58cf7ce3cc8ad477e3fe04f32186357198d",
+    "templates/analytics.html": "bc5cbeef8018786ab20c8e263f7c60456502ab24d21df57e13468df930efc37c",
     "templates/base.html": "2032c511467d85a908412458916887224ab4b34855d0af66f9ba78acf3d711a7",
     "templates/customers.html": "ea21f425daa2452de7b44e5847e5c0725189592e6447e3ff437592a0cbe67475",
     "templates/dashboard.html": "7d84a08484310f410e6f22fb453cd837d711d025f2502fb37662772a727ffbec",
