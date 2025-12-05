@@ -6,14 +6,13 @@ import hashlib
 class Employee:
     def __init__(self, db):
         self.db = db
-        # [核心修复] 初始化时检查并创建表结构
+        # 初始化表结构
         self.create_table_if_not_exists()
 
     def create_table_if_not_exists(self):
         """初始化员工表及相关触发器"""
         try:
             # 1. 创建员工表
-            # 注意：移除了可能有问题的 CHECK 约束，改为在代码中验证，增强兼容性
             sql_table = '''
                 CREATE TABLE IF NOT EXISTS employees (
                     employee_id VARCHAR(20) PRIMARY KEY,
@@ -68,70 +67,79 @@ class Employee:
 
     def create_employee(self, input_data: dict) -> dict:
         try:
-            # 验证基本信息
+            # 1. 基础验证
             if not input_data.get('employee_name') or not input_data.get('gender'):
                 return {'success': False, 'message': '姓名和性别是必填项'}
 
             if input_data.get('gender') not in ['男', '女']:
                 return {'success': False, 'message': '性别必须是"男"或"女"'}
 
-            # 生成工号
+            # 2. 生成工号
             hire_date = input_data.get('hire_date')
             year = hire_date[:4] if hire_date else str(datetime.now().year)
 
             max_id = self.get_max_id(year)
             if max_id:
-                new_serial = int(max_id[-3:]) + 1
+                try:
+                    new_serial = int(max_id[-3:]) + 1
+                except ValueError:
+                    new_serial = 1
             else:
                 new_serial = 1
 
             employee_id = f"{year}{str(new_serial).zfill(3)}"
 
-            # 检查用户名是否已存在
+            # 3. 检查用户名唯一性
             if input_data.get('username'):
                 if self.check_username_exists(input_data['username']):
                     return {'success': False, 'message': '用户名已存在'}
 
-            # 准备数据库数据
+            # 4. 准备数据库数据 (明确映射，避免脏数据)
             db_data = {
                 'employee_id': employee_id,
                 'employee_name': input_data['employee_name'].strip(),
-                'gender': input_data['gender']
+                'gender': input_data['gender'],
+                'hire_date': input_data.get('hire_date') or datetime.now().strftime('%Y-%m-%d'),
+                'status': input_data.get('status', '在职')
             }
 
-            # 处理可选字段
-            for field in ['phone', 'email', 'department_id', 'position_name', 'username']:
-                if input_data.get(field):
-                    db_data[field] = input_data[field].strip()
+            # 处理可选的文本字段
+            optional_fields = ['phone', 'email', 'department_id', 'position_name', 'username']
+            for field in optional_fields:
+                val = input_data.get(field)
+                if val is not None and str(val).strip() != '':
+                    db_data[field] = str(val).strip()
+                else:
+                    db_data[field] = None
 
+            # 处理薪资 (安全转换)
             if input_data.get('salary'):
                 try:
                     db_data['salary'] = float(input_data['salary'])
-                except:
+                except (ValueError, TypeError):
                     db_data['salary'] = 0.00
+            else:
+                db_data['salary'] = 0.00
 
-            # 密码处理
+            # 处理密码 (将 password 转换为 password_hash)
             if input_data.get('username') and input_data.get('password'):
                 db_data['password_hash'] = hashlib.sha256(input_data['password'].encode()).hexdigest()
+            else:
+                db_data['password_hash'] = None
 
-            # 设置默认值
-            db_data['hire_date'] = input_data.get('hire_date') or datetime.now().strftime('%Y-%m-%d')
-            db_data['status'] = input_data.get('status', '在职')
-
-            # 插入数据库
+            # 5. 执行插入
             if self.insert_employee(db_data):
-                # 获取完整信息返回
-                employee_info = self.get_employee_by_id(employee_id)
                 return {
                     'success': True,
-                    'data': employee_info,
+                    'data': self.get_employee_by_id(employee_id),
                     'message': f'员工创建成功，工号：{employee_id}'
                 }
             else:
-                return {'success': False, 'message': '创建失败，可能是数据库字段限制导致'}
+                return {'success': False, 'message': '创建失败，数据库写入错误'}
 
         except Exception as e:
-            return {'success': False, 'message': f'创建过程中发生错误：{str(e)}'}
+            print(f"创建员工异常: {e}")
+            return {'success': False, 'message': f'系统错误：{str(e)}'}
 
     def update_employee(self, employee_id: str, update_data: dict) -> dict:
         try:
@@ -139,11 +147,48 @@ class Employee:
             if not existing:
                 return {'success': False, 'message': '员工不存在'}
 
-            if self.db_update_employee(employee_id, update_data):
+            # [核心修复] 过滤字段，只允许更新数据库存在的列
+            valid_columns = {
+                'employee_name', 'gender', 'phone', 'email', 'department_id',
+                'position_name', 'hire_date', 'status', 'salary', 'username',
+                'termination_date'
+            }
+
+            safe_data = {}
+
+            # 1. 提取有效字段
+            for key, value in update_data.items():
+                if key in valid_columns:
+                    # 处理空字符串为 None
+                    if value == '':
+                        safe_data[key] = None
+                    else:
+                        safe_data[key] = value
+
+            # 2. 特殊处理密码字段
+            # 如果前端传了 password 且不为空，则更新 password_hash
+            new_password = update_data.get('password')
+            if new_password and str(new_password).strip():
+                safe_data['password_hash'] = hashlib.sha256(str(new_password).encode()).hexdigest()
+
+            # 3. 特殊处理薪资类型
+            if 'salary' in safe_data and safe_data['salary'] is not None:
+                try:
+                    safe_data['salary'] = float(safe_data['salary'])
+                except:
+                    safe_data['salary'] = 0.00
+
+            # 如果没有有效字段需要更新，直接返回成功
+            if not safe_data:
+                return {'success': True, 'message': '没有检测到数据变更'}
+
+            if self.db_update_employee(employee_id, safe_data):
                 return {'success': True, 'message': '员工信息更新成功'}
             else:
-                return {'success': False, 'message': '更新失败'}
+                return {'success': False, 'message': '更新失败，数据库操作未生效'}
+
         except Exception as e:
+            print(f"更新员工异常: {e}")
             return {'success': False, 'message': f'更新员工失败: {str(e)}'}
 
     def delete_employee(self, employee_id: str) -> dict:
@@ -159,6 +204,9 @@ class Employee:
         try:
             employee = self.get_employee_by_id(employee_id)
             if employee:
+                # 移除敏感信息
+                if 'password_hash' in employee:
+                    del employee['password_hash']
                 return {'success': True, 'data': employee}
             else:
                 return {'success': False, 'message': '员工不存在'}
@@ -168,10 +216,12 @@ class Employee:
     def get_all_employees(self) -> dict:
         try:
             sql = '''
-                  SELECT e.*, d.department_name
+                  SELECT e.employee_id, e.employee_name, e.gender, e.phone, e.email,
+                         e.department_id, e.position_name, e.hire_date, e.status, e.salary,
+                         e.username, d.department_name
                   FROM employees e
                            LEFT JOIN departments d ON e.department_id = d.department_id
-                  ORDER BY e.employee_id
+                  ORDER BY e.employee_id DESC
                   '''
             employees = self.db.execute_query(sql)
             return {
@@ -181,6 +231,8 @@ class Employee:
             }
         except Exception as e:
             return {'success': False, 'message': f'获取员工列表失败: {str(e)}'}
+
+    # --- 数据库底层操作 ---
 
     def get_max_id(self, year: str) -> str:
         try:
@@ -198,31 +250,36 @@ class Employee:
         except:
             return False
 
-    def insert_employee(self, employee_data: dict) -> bool:
+    def insert_employee(self, data: dict) -> bool:
         try:
             sql = '''
-                  INSERT INTO employees (employee_id, employee_name, gender, phone, email,
-                                         department_id, position_name, hire_date, status, salary,
-                                         username, password_hash)
+                  INSERT INTO employees (
+                      employee_id, employee_name, gender, phone, email,
+                      department_id, position_name, hire_date, status, salary,
+                      username, password_hash
+                  )
                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                   '''
-            result = self.db.execute_update(sql, (
-                employee_data.get('employee_id'),
-                employee_data.get('employee_name'),
-                employee_data.get('gender'),
-                employee_data.get('phone'),
-                employee_data.get('email'),
-                employee_data.get('department_id'),
-                employee_data.get('position_name'),
-                employee_data.get('hire_date'),
-                employee_data.get('status', '在职'),
-                employee_data.get('salary', 0.00),
-                employee_data.get('username'),
-                employee_data.get('password_hash')
-            ))
+            # 使用元组确保顺序正确
+            params = (
+                data.get('employee_id'),
+                data.get('employee_name'),
+                data.get('gender'),
+                data.get('phone'),
+                data.get('email'),
+                data.get('department_id'),
+                data.get('position_name'),
+                data.get('hire_date'),
+                data.get('status'),
+                data.get('salary'),
+                data.get('username'),
+                data.get('password_hash')
+            )
+
+            result = self.db.execute_update(sql, params)
             return result is not None and result > 0
         except Exception as e:
-            print(f"插入员工数据失败: {e}")
+            print(f"插入员工SQL失败: {e}")
             return False
 
     def get_employee_by_id(self, employee_id: str) -> dict:
@@ -242,19 +299,26 @@ class Employee:
         try:
             set_fields = []
             params = []
-            for field, value in update_data.items():
-                if value is not None:
-                    set_fields.append(f"{field} = ?")
-                    params.append(value)
 
-            if not set_fields: return False
+            for field, value in update_data.items():
+                set_fields.append(f"{field} = ?")
+                params.append(value)
+
+            if not set_fields:
+                return False
 
             params.append(employee_id)
+
+            # 动态构建 SQL
             sql = f"UPDATE employees SET {', '.join(set_fields)} WHERE employee_id = ?"
+
+            # 调试日志
+            # print(f"Execute Update: {sql}, Params: {params}")
+
             result = self.db.execute_update(sql, tuple(params))
             return result is not None and result > 0
         except Exception as e:
-            print(f"更新员工失败: {e}")
+            print(f"更新员工SQL失败: {e}")
             return False
 
     def db_delete_employee(self, employee_id: str) -> bool:
@@ -267,7 +331,6 @@ class Employee:
 
     def get_employee_statistics(self) -> dict:
         try:
-            # 安全获取统计数据
             total = 0
             active = 0
             terminated = 0
