@@ -127,24 +127,59 @@ class Employee:
                 'message': f'删除员工失败: {str(e)}'
             }
 
-    def get_employee(self, employee_id: str) -> dict:
+    def get_employee_statistics(self) -> dict:
+        print("执行 get_employee_statistics()")
         try:
-            employee = self.get_employee_by_id(employee_id)
-            if employee:
-                return {
-                    'success': True,
-                    'data': employee
-                }
-            else:
-                return {
-                    'success': False,
-                    'message': '员工不存在'
-                }
+            # 总员工数
+            total_res = self.db.execute_query("SELECT COUNT(*) AS total FROM employees")
+            print("total_res:", total_res)  # 调试输出
+            total = total_res[0]['total'] if total_res else 0
+
+            # 在职员工数
+            active_res = self.db.execute_query("SELECT COUNT(*) AS active FROM employees WHERE TRIM(status) = '在职'")
+            print("active_res:", active_res)  # 调试输出
+            active = active_res[0]['active'] if active_res else 0
+
+            # 离职员工数
+            terminated_res = self.db.execute_query("SELECT COUNT(*) AS terminated FROM employees WHERE TRIM(status) = '离职'")
+            print("terminated_res:", terminated_res)  # 调试输出
+            terminated = terminated_res[0]['terminated'] if terminated_res else 0
+
+            # 在职率
+            active_rate = f"{(active / total * 100):.0f}%" if total else '0%'
+
+            # 按部门统计在职员工
+            dept_sql = '''
+                SELECT d.department_name, COUNT(e.employee_id) AS count
+                FROM departments d
+                LEFT JOIN employees e
+                    ON d.department_id = e.department_id AND TRIM(e.status) = '在职'
+                GROUP BY d.department_id
+                ORDER BY count DESC
+            '''
+            by_dept = self.db.execute_query(dept_sql) or []
+            print("by_department:", by_dept)  # 调试输出
+
+            return {
+                'success': True,
+                'total': total,
+                'active': active,
+                'terminated': terminated,
+                'active_rate': active_rate,
+                'by_department': by_dept
+            }
+
         except Exception as e:
+            print(f"统计失败: {e}")
             return {
                 'success': False,
-                'message': f'获取员工信息失败: {str(e)}'
+                'total': 0,
+                'active': 0,
+                'terminated': 0,
+                'active_rate': '0%',
+                'by_department': []
             }
+
 
     def get_all_employees(self) -> dict:
         try:
@@ -212,14 +247,19 @@ class Employee:
             return False
 
     def get_employee_by_id(self, employee_id: str) -> dict:
-        sql = '''
-              SELECT e.*, d.department_name
-              FROM employees e
-                  LEFT JOIN departments d ON e.department_id = d.department_id
-              WHERE e.employee_id = ?
-              '''
-        result = self.db.execute_query(sql, (employee_id,))
-        return result[0] if result else None
+        try:
+            sql = '''
+                SELECT e.*, d.department_name
+                FROM employees e
+                LEFT JOIN departments d ON e.department_id = d.department_id
+                WHERE e.employee_id = ?
+                '''
+            result = self.db.execute_query(sql, (employee_id,))
+            print("get_employee_by_id result:", result)
+            return result[0] if result else None
+        except Exception as e:
+            print(f"get_employee_by_id 出错: {e}")
+            raise
 
     def db_update_employee(self, employee_id: str, update_data: dict) -> bool:
         try:
@@ -260,16 +300,16 @@ class Employee:
             term_res = self.db.execute_query("SELECT COUNT(*) as terminated FROM employees WHERE status = '离职'")
             if term_res: terminated = term_res[0]['terminated']
 
-            active_rate = (active / total * 100) if total > 0 else 0
+            active_rate = f"{(active / total * 100):.0f}%" if total > 0 else '0%'
 
             dept_sql = '''
-                       SELECT d.department_name, COUNT(e.employee_id) as count
-                       FROM departments d
-                           LEFT JOIN employees e 
-                       ON d.department_id = e.department_id AND e.status = '在职'
-                       GROUP BY d.department_id
-                       ORDER BY count DESC
-                       '''
+                    SELECT d.department_name, COUNT(e.employee_id) as count
+                    FROM departments d
+                        LEFT JOIN employees e 
+                    ON d.department_id = e.department_id AND e.status = '在职'
+                    GROUP BY d.department_id
+                    ORDER BY count DESC
+                    '''
             by_dept = self.db.execute_query(dept_sql)
 
             return {
@@ -281,4 +321,4 @@ class Employee:
             }
         except Exception as e:
             print(f"统计失败: {e}")
-            return {'total': 0, 'active': 0, 'terminated': 0, 'active_rate': 0, 'by_department': []}
+            return {'total': 0, 'active': 0, 'terminated': 0, 'active_rate': '0%', 'by_department': []}

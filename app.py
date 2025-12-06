@@ -150,8 +150,16 @@ def api_get_employee(employee_id):
     if not session.get('logged_in'):
         return jsonify({'success': False, 'message': '请先登录'}), 401
 
-    result = employee_manager.get_employee(employee_id)
-    return jsonify(result)
+    try:
+        employee = employee_manager.get_employee_by_id(employee_id)
+        if not employee:
+            return jsonify({'success': False, 'message': '员工不存在'}), 404
+
+        return jsonify({'success': True, 'data': employee})
+    except Exception as e:
+        print(f"获取员工信息失败: {e}")  # 打印到终端
+        return jsonify({'success': False, 'message': f'获取员工信息失败: {str(e)}'}), 500
+
 
 @app.route('/api/employee/update/<employee_id>', methods=['PUT'])
 def api_update_employee(employee_id):
@@ -177,17 +185,26 @@ def api_get_employee_statistics():
         return jsonify({'success': False, 'message': '请先登录'}), 401
 
     try:
+        # 打印调用前的提示
+        print("开始获取员工统计数据...")
+
         statistics = employee_manager.get_employee_statistics()
+
+        # 打印函数返回的完整数据
+        print("获取到的统计数据:", statistics)
+
         return jsonify({
             'success': True,
             'data': statistics,
             'message': '统计信息获取成功'
         })
     except Exception as e:
+        print("获取统计信息异常:", e)
         return jsonify({
             'success': False,
             'message': f'获取统计信息失败: {str(e)}'
         })
+
 
 @app.route('/api/customer/list', methods=['GET'])
 def api_get_customers():
