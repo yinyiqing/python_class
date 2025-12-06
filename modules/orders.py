@@ -16,121 +16,112 @@ class Orders:
 
         if result and result[0]['max_id']:
             max_id = result[0]['max_id']
-            last_serial = int(max_id[-3:])
+            try:
+                last_serial = int(max_id[-3:])
+            except ValueError:
+                last_serial = 0
+
             new_serial = last_serial + 1
         else:
             new_serial = 1
 
         return f"{date_part}{str(new_serial).zfill(3)}"
 
-    def create_order(self, input_data: dict) -> dict:
-        """
-        创建新订单
-
-        Args:
-            input_data: 订单数据字典，包含customer_id, room_number, check_in_date, check_out_date等
-
-        Returns:
-            dict: 包含success, data, message的返回结果
-        """
+    def create_order(self, input_data):
         try:
+            # 1. 验证必填字段
             required_fields = ['customer_id', 'room_number', 'check_in_date', 'check_out_date']
             for field in required_fields:
                 if not input_data.get(field):
-                    return {
-                        'success': False,
-                        'message': f'{field}是必填项'
-                    }
-
-            valid_statuses = ['预定中', '已入住', '已完成', '已取消', '异常']
-            if input_data.get('order_status') and input_data['order_status'] not in valid_statuses:
-                return {
-                    'success': False,
-                    'message': f'订单状态必须是: {", ".join(valid_statuses)}'
-                }
-
-            valid_payment_statuses = ['未支付', '部分支付', '已支付', '已退款']
-            if input_data.get('payment_status') and input_data['payment_status'] not in valid_payment_statuses:
-                return {
-                    'success': False,
-                    'message': f'支付状态必须是: {", ".join(valid_payment_statuses)}'
-                }
-
-            order_id = self.generate_order_id()
-
+                    return {'success': False, 'message': f'缺少必要字段: {field}'}
+            
+            # 2. 提取数据
+            customer_id = input_data.get('customer_id')
+            room_number = input_data.get('room_number')
+            check_in_date = input_data.get('check_in_date')
+            check_out_date = input_data.get('check_out_date')
+            employee_id = input_data.get('employee_id')
+            order_status = input_data.get('order_status', '预定中')
+            payment_status = input_data.get('payment_status', '未支付')
+            total_amount = float(input_data.get('total_amount', 0) or 0)
+            paid_amount = float(input_data.get('paid_amount', 0) or 0)
+            special_requests = input_data.get('special_requests', '')
+            
+            # 3. 计算入住天数
+            from datetime import datetime
             try:
-                check_in = datetime.strptime(input_data['check_in_date'], '%Y-%m-%d')
-                check_out = datetime.strptime(input_data['check_out_date'], '%Y-%m-%d')
+                check_in = datetime.strptime(check_in_date, '%Y-%m-%d')
+                check_out = datetime.strptime(check_out_date, '%Y-%m-%d')
                 days = (check_out - check_in).days
                 if days <= 0:
-                    return {
-                        'success': False,
-                        'message': '退房日期必须晚于入住日期'
-                    }
-            except ValueError:
-                return {
-                    'success': False,
-                    'message': '日期格式错误，请使用YYYY-MM-DD格式'
-                }
-
-            db_data = {
-                'order_id': order_id,
-                'customer_id': input_data['customer_id'],
-                'room_number': input_data['room_number'].strip(),
-                'check_in_date': input_data['check_in_date'],
-                'check_out_date': input_data['check_out_date'],
-                'days': days
-            }
-
-            if input_data.get('total_amount'):
+                    days = 1
+            except:
+                days = 1
+            
+            # 4. 检查房间
+            room_sql = "SELECT room_number, room_type, status, price FROM rooms WHERE room_number = ?"
+            room_result = self.db.execute_query(room_sql, (room_number,))
+            
+            if not room_result:
+                return {'success': False, 'message': f'房间 {room_number} 不存在'}
+            
+            room_data = room_result[0]
+            room_status = room_data.get('status', '未知')
+            room_price = float(room_data.get('price', 0) or 0)
+            
+            if room_status != '空闲':
+                return {'success': False, 'message': f'房间当前状态为{room_status}，无法预订'}
+            
+            # 5. 检查房间可用性
+            availability_result = self.check_room_availability(room_number, check_in_date, check_out_date)
+            if not availability_result.get('available', False):
+                return {'success': False, 'message': availability_result.get('message', '房间不可用')}
+            
+            # 6. 计算金额
+            if total_amount <= 0 and room_price > 0:
+                total_amount = room_price * days
+            
+            # 7. 生成订单号
+            order_id = self.generate_order_id()
+            
+            # 8. 插入订单 - 包含days字段
+            sql = """
+                INSERT INTO orders (
+                    order_id, customer_id, room_number, employee_id,
+                    check_in_date, check_out_date, days, order_status,
+                    payment_status, total_amount, paid_amount,
+                    special_requests, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+            """
+            
+            params = (
+                order_id, customer_id, room_number, employee_id,
+                check_in_date, check_out_date, days, order_status,
+                payment_status, total_amount, paid_amount,
+                special_requests
+            )
+            
+            result = self.db.execute_query(sql, params)
+            
+            if result:
+                # 更新房间状态
                 try:
-                    db_data['total_amount'] = float(input_data['total_amount'])
+                    self.db.execute_query("UPDATE rooms SET status = '已预订' WHERE room_number = ?", (room_number,))
                 except:
-                    return {
-                        'success': False,
-                        'message': '总金额格式错误'
-                    }
-            else:
-                room_sql = "SELECT price FROM rooms WHERE room_number = ?"
-                room_result = self.db.execute_query(room_sql, (input_data['room_number'],))
-                if room_result and room_result[0]['price']:
-                    room_price = room_result[0]['price']
-                    db_data['total_amount'] = room_price * days
-                else:
-                    db_data['total_amount'] = 0.00
-
-            optional_fields = ['employee_id', 'payment_status', 'order_status', 'special_requests']
-
-            for field in optional_fields:
-                if input_data.get(field):
-                    db_data[field] = input_data[field].strip() if isinstance(input_data[field], str) else input_data[
-                        field]
-
-            if input_data.get('paid_amount'):
-                try:
-                    db_data['paid_amount'] = float(input_data['paid_amount'])
-                except:
-                    db_data['paid_amount'] = 0.00
-
-            if self._insert_order(db_data):
-                order_info = self._get_order_by_id(order_id)
+                    pass
+                
                 return {
                     'success': True,
-                    'data': order_info,
-                    'message': f'订单创建成功，订单号：{order_id}'
+                    'message': '订单创建成功',
+                    'data': {'order_id': order_id, 'days': days, 'total_amount': total_amount}
                 }
             else:
-                return {
-                    'success': False,
-                    'message': '创建失败'
-                }
-
+                return {'success': False, 'message': '订单创建失败'}
+                    
         except Exception as e:
-            return {
-                'success': False,
-                'message': f'创建过程中发生错误：{str(e)}'
-            }
-
+            return {'success': False, 'message': f'创建过程中发生错误：{str(e)}'}
+    
+    
     def update_order(self, order_id: str, update_data: dict) -> dict:
         """
         更新订单信息
@@ -430,74 +421,94 @@ class Orders:
         }
 
     def check_room_availability(
-            self,
-            room_number: str,
-            check_in: str,
-            check_out: str,
-            exclude_order_id: str = None
+        self,
+        room_number: str,
+        check_in: str,
+        check_out: str,
+        exclude_order_id: str = None    
     ) -> dict:
-        """
-        检查房间在指定时间段内是否可用
+   
+        try:
+            # 1. 检查房间是否存在
+            room_sql = "SELECT status FROM rooms WHERE room_number = ?"
+            room_result = self.db.execute_query(room_sql, (room_number,))
 
-        Args:
-            room_number: 房间号
-            check_in: 入住日期
-            check_out: 退房日期
-            exclude_order_id: 排除的订单ID（可选）
+            if not room_result:
+                return {
+                    'success': False,
+                    'message': '房间不存在',
+                    'available': False
+                }
 
-        Returns:
-            dict: 包含检查结果的字典
-        """
-        room_sql = "SELECT status FROM rooms WHERE room_number = ?"
-        room_result = self.db.execute_query(room_sql, (room_number,))
+            room_status = room_result[0]['status'] if isinstance(room_result[0], dict) else room_result[0][0]
+            if room_status != '空闲':
+                return {
+                    'success': True,
+                    'message': f'房间当前状态为{room_status}',
+                    'available': False
+                }
 
-        if not room_result:
-            return {
-                'success': False,
-                'message': '房间不存在',
-                'available': False
-            }
+            # 2. 构建参数列表和SQL查询
+            # 核心逻辑：检查是否有订单与指定时间段重叠
+            # 重叠条件：新订单的入住日期 < 现有订单的退房日期 且 新订单的退房日期 > 现有订单的入住日期
+            
+            # 构建基本参数列表
+            params = [room_number, check_in, check_out]
+            exclude_clause = ""
+            if exclude_order_id:
+                exclude_clause = "AND order_id != ?"
+                params.append(exclude_order_id)
 
-        room_status = room_result[0]['status']
-        if room_status != '空闲':
+            sql = f'''
+                SELECT COUNT(*) as count, 
+                    GROUP_CONCAT(order_id) as conflict_orders
+                FROM orders 
+                WHERE room_number = ? 
+                AND order_status NOT IN ('已取消', '已完成')
+                AND check_out_date > ?  -- 现有订单的退房日期 > 新订单的入住日期
+                AND check_in_date < ?   -- 现有订单的入住日期 < 新订单的退房日期
+                {exclude_clause}
+            '''
+
+            print(f"检查房间可用性 SQL: {sql}")
+            print(f"参数: {params}")
+            
+            result = self.db.execute_query(sql, tuple(params))
+            
+            # 3. 处理查询结果
+            if result:
+                # 处理不同的结果格式
+                if isinstance(result[0], dict):
+                    count = result[0].get('count', 0)
+                    conflict_orders = result[0].get('conflict_orders', '')
+                else:
+                    count = result[0][0] if len(result[0]) > 0 else 0
+                    conflict_orders = result[0][1] if len(result[0]) > 1 else ""
+            else:
+                count = 0
+                conflict_orders = ""
+
+            available = count == 0
+
             return {
                 'success': True,
-                'message': f'房间当前状态为{room_status}',
+                'available': available,
+                'message': '房间可用' if available else f'房间已被{count}个订单占用',
+                'conflict_orders': conflict_orders if not available else "",
+                'room_number': room_number,
+                'check_in_date': check_in,
+                'check_out_date': check_out
+            }
+            
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return {
+                'success': False,
+                'message': f'检查房间可用性失败: {str(e)}',
                 'available': False
             }
-
-        params = [room_number, check_in, check_out, check_in, check_out]
-        exclude_clause = ""
-        if exclude_order_id:
-            exclude_clause = "AND order_id != ?"
-            params.append(exclude_order_id)
-
-        sql = f'''
-            SELECT COUNT(*) as count, 
-                   GROUP_CONCAT(order_id) as conflict_orders
-            FROM orders 
-            WHERE room_number = ? 
-              AND order_status NOT IN ('已取消', '已完成')
-              AND (
-                (check_in_date < ? AND check_out_date > ?) OR
-                (check_in_date >= ? AND check_in_date < ?) OR
-                (check_out_date > ? AND check_out_date <= ?)
-              )
-              {exclude_clause}
-        '''
-
-        result = self.db.execute_query(sql, tuple(params))
-        count = result[0]['count'] if result else 0
-        conflict_orders = result[0]['conflict_orders'] if result and result[0]['conflict_orders'] else ""
-
-        available = count == 0
-
-        return {
-            'success': True,
-            'available': available,
-            'message': '房间可用' if available else f'房间已被{count}个订单占用',
-            'conflict_orders': conflict_orders if not available else ""
-        }
+   
 
     def calculate_payment(self, order_id: str, payment_amount: float) -> dict:
         """
@@ -562,6 +573,7 @@ class Orders:
             order_data.get('customer_id'),
             order_data.get('room_number'),
             order_data.get('employee_id'),
+            order_data.get('employee_id'),  
             order_data.get('check_in_date'),
             order_data.get('check_out_date'),
             order_data.get('days'),
