@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "generated_at": "2025-12-07T03:54:02.029676",
+    "generated_at": "2025-12-07T04:43:03.007118",
     "file_count": 29
   },
   "file_hashes": {
@@ -16,13 +16,13 @@
     "static/css/login.css": "46b9f5670da14e6a7f1dfdd4d49eae217fca25735d26f50f57e07f2d06141630",
     "static/css/style.css": "7d1681661a9187dc73769e29b752cde7c62ffdd900bfa21f805bda510355af40",
     "static/css/theme.css": "928ed7c75f5cbf27f57f8c8f4ee24448b8dc4f02725366cd6cfa46f2e2390f75",
-    "static/js/analytics.js": "1e1f9a9e1cfdd9c58aae442db45c2074be9bba461406af11cd6fc7b7625dd83e",
+    "static/js/analytics.js": "50befc9d8954c1f69c9d50090c0ee54d839f8dcb571d6957f1c8af2260592dac",
     "static/js/common.js": "15aa5465aaf1b2c26f0bcf271eefc890beb47bb9327d4f3013db7a34cf2019ce",
     "static/js/customers.js": "3f18f08b1faafc4db58a53606d948367bff830c96b7d1547882b128b7f849958",
     "static/js/employees.js": "3a5f3c2454bc920d2af181cc59251dec33cc50cb142f7d2199831af3913d45a3",
     "static/js/login.js": "362d1b9e0790aa99a66296656dca6f61c6105eaa3b84fc5ffc37355093ac28a2",
     "static/js/rooms.js": "f3d2ee163f53b33397a5733ed094b58cf7ce3cc8ad477e3fe04f32186357198d",
-    "templates/analytics.html": "c7680aa1830df885f757c28ff41356b5671d13e2544d41ab4a2c9d2fabc33970",
+    "templates/analytics.html": "28dbfde3a78dbbb110682c66fc5c0f8411b5fece57d5dc80375d9815524322e7",
     "templates/base.html": "2032c511467d85a908412458916887224ab4b34855d0af66f9ba78acf3d711a7",
     "templates/customers.html": "ea21f425daa2452de7b44e5847e5c0725189592e6447e3ff437592a0cbe67475",
     "templates/dashboard.html": "7d84a08484310f410e6f22fb453cd837d711d025f2502fb37662772a727ffbec",

@@ -76,86 +76,219 @@ async function loadDashboardData() {
 }
 
 // 更新仪表板统计数据
+// 更新仪表板统计数据
 function updateDashboardStats(data) {
-    const summary = data.summary;
-
-    // 创建或更新统计卡片
+    console.log('updateDashboardStats called with:', data);
+    
+    // 容错处理
+    if (!data) {
+        console.error('No data provided to updateDashboardStats');
+        return;
+    }
+    
     const statsGrid = document.getElementById('dashboard-stats');
-    statsGrid.innerHTML = '';
-
+    if (!statsGrid) {
+        console.error('Element #dashboard-stats not found');
+        return;
+    }
+    
+    // 调试当前样式
+    const computedStyle = window.getComputedStyle(statsGrid);
+    console.log('Current statsGrid style - display:', computedStyle.display, 
+                'gridTemplateColumns:', computedStyle.gridTemplateColumns);
+    
+    // 强制设置容器为网格布局
+    statsGrid.style.cssText = `
+        display: grid !important;
+        grid-template-columns: repeat(4, 1fr) !important;
+        gap: 20px !important;
+        margin: 20px 0 30px 0 !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    `;
+    
+    // 使用实际数据或默认值
+    const summary = data.summary || {};
+    
+    // 创建卡片数据
     const statCards = [
         {
             icon: 'users',
             iconColor: '#2196F3',
             label: '员工总数',
-            value: summary.employees,
+            value: summary.employees || 0,
             change: null
         },
         {
             icon: 'user-check',
             iconColor: '#4CAF50',
             label: '在职员工',
-            value: summary.active_employees,
+            value: summary.active_employees || 0,
             change: null
         },
         {
             icon: 'user-friends',
             iconColor: '#03A9F4',
             label: '客户总数',
-            value: summary.customers,
+            value: summary.customers || 0,
             change: null
         },
         {
             icon: 'bed',
             iconColor: '#8BC34A',
             label: '房间总数',
-            value: summary.rooms,
+            value: summary.rooms || 0,
             change: null
         },
         {
             icon: 'door-open',
             iconColor: '#FF9800',
             label: '入住率',
-            value: summary.occupancy_rate + '%',
+            value: (summary.occupancy_rate || 0) + '%',
             change: null
         },
         {
             icon: 'shopping-cart',
             iconColor: '#9C27B0',
             label: '订单总数',
-            value: summary.total_orders,
+            value: summary.total_orders || 0,
             change: null
         },
         {
             icon: 'money-bill-wave',
             iconColor: '#4CAF50',
             label: '今日收入',
-            value: '¥' + formatNumber(summary.today_revenue),
+            value: '¥' + formatNumber(summary.today_revenue || 0),
             change: null
         },
         {
             icon: 'hand-holding-usd',
             iconColor: '#FFC107',
             label: '今日实收',
-            value: '¥' + formatNumber(summary.today_paid),
+            value: '¥' + formatNumber(summary.today_paid || 0),
             change: null
         }
     ];
-
-    statCards.forEach(stat => {
+    
+    console.log('Creating', statCards.length, 'cards');
+    
+    // 清空容器
+    statsGrid.innerHTML = '';
+    
+    // 创建并添加卡片
+    statCards.forEach((stat, index) => {
+        // 创建卡片容器
         const card = document.createElement('div');
-        card.className = 'stat-card';
+        
+        // 设置卡片基础样式
+        card.style.cssText = `
+            background-color: var(--color-secondary);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            transition: all 0.3s ease;
+            min-height: 140px;
+            box-sizing: border-box;
+            border: 1px solid rgba(255,255,255,0.1);
+            overflow: hidden;
+            position: relative;
+        `;
+        
+        // 添加悬停效果
+        card.addEventListener('mouseenter', () => {
+            card.style.transform = 'translateY(-5px)';
+            card.style.boxShadow = '0 8px 25px rgba(0,0,0,0.3)';
+        });
+        
+        card.addEventListener('mouseleave', () => {
+            card.style.transform = 'translateY(0)';
+            card.style.boxShadow = '0 4px 10px rgba(0,0,0,0.15)';
+        });
+        
+        // 创建图标样式
+        const iconStyle = `
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 12px;
+            background: rgba(${hexToRgb(stat.iconColor)}, 0.2);
+            color: ${stat.iconColor};
+            font-size: 24px;
+            transition: all 0.3s ease;
+        `;
+        
+        // 创建卡片内容
         card.innerHTML = `
-            <div class="stat-icon" style="background: rgba(${hexToRgb(stat.iconColor)}, 0.2); color: ${stat.iconColor};">
+            <div style="${iconStyle}">
                 <i class="fas fa-${stat.icon}"></i>
             </div>
-            <div class="stat-label">${stat.label}</div>
-            <div class="stat-value">${stat.value}</div>
+            <div style="
+                font-size: 14px;
+                color: var(--color-gray-light);
+                margin-bottom: 6px;
+                font-weight: 500;
+                text-align: center;
+                line-height: 1.4;
+            ">
+                ${stat.label}
+            </div>
+            <div style="
+                font-size: 20px;
+                font-weight: bold;
+                color: var(--color-light);
+                text-align: center;
+                line-height: 1.2;
+            ">
+                ${stat.value}
+            </div>
         `;
+        
+        // 添加到网格容器
         statsGrid.appendChild(card);
+        console.log(`Card ${index} created:`, stat.label);
     });
+    
+    // 添加响应式处理
+    function updateGridLayout() {
+        const width = window.innerWidth;
+        
+        if (width <= 768) {
+            statsGrid.style.gridTemplateColumns = '1fr !important';
+        } else if (width <= 1200) {
+            statsGrid.style.gridTemplateColumns = 'repeat(2, 1fr) !important';
+        } else {
+            statsGrid.style.gridTemplateColumns = 'repeat(4, 1fr) !important';
+        }
+    }
+    
+    // 初始布局
+    updateGridLayout();
+    
+    // 监听窗口大小变化
+    window.addEventListener('resize', updateGridLayout);
+    
+    // 检查最终布局
+    setTimeout(() => {
+        console.log('Final grid layout:');
+        console.log('Grid children count:', statsGrid.children.length);
+        console.log('Grid computed display:', window.getComputedStyle(statsGrid).display);
+        console.log('Grid computed columns:', window.getComputedStyle(statsGrid).gridTemplateColumns);
+        
+        // 检查每个卡片的位置
+        Array.from(statsGrid.children).forEach((child, i) => {
+            const rect = child.getBoundingClientRect();
+            console.log(`Card ${i}: x=${rect.x}, y=${rect.y}, width=${rect.width}, height=${rect.height}`);
+        });
+    }, 100);
 }
-
 // 加载图表数据
 async function loadCharts() {
     // 加载员工部门分布图
@@ -311,170 +444,9 @@ function renderEmployeeDeptBarChart(deptData) {
 
 
 
-// 渲染支付状态柱状图
-function renderPaymentStatusChart(paymentData) {
-    const ctx = document.getElementById('paymentStatusChart').getContext('2d');
 
-    if (charts['paymentStatusChart']) {
-        charts['paymentStatusChart'].destroy();
-    }
 
-    const labels = paymentData.map(item => item.payment_status);
-    const data = paymentData.map(item => item.count);
-
-    charts['paymentStatusChart'] = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: '订单数量',
-                data: data,
-                backgroundColor: '#FF9800',
-                borderColor: '#e68900',
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    labels: {
-                        color: 'var(--color-gray-light)'
-                    }
-                }
-            },
-            scales: {
-                x: {
-                    ticks: {
-                        color: 'var(--color-gray-light)'
-                    },
-                    grid: {
-                        color: 'rgba(255, 255, 255, 0.1)'
-                    }
-                },
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        color: 'var(--color-gray-light)',
-                        precision: 0
-                    },
-                    grid: {
-                        color: 'rgba(255, 255, 255, 0.1)'
-                    }
-                }
-            }
-        }
-    });
-}
-
-// 加载客户统计数据
-async function loadCustomerStats() {
-    try {
-        const response = await fetch('/api/analytics/customers');
-        const result = await response.json();
-
-        if (result.success) {
-            const data = result.data;
-
-            // 更新统计卡片
-            document.getElementById('total-customers').textContent = data.total;
-            document.getElementById('today-new-customers').textContent = data.today_new;
-            document.getElementById('vip-customers').textContent = data.top_customers.length;
-
-            // 计算平均消费
-            const totalSpent = data.top_customers.reduce((sum, customer) => sum + (customer.total_spent || 0), 0);
-            const avgSpent = data.top_customers.length > 0 ? totalSpent / data.top_customers.length : 0;
-            document.getElementById('avg-spent').textContent = '¥' + formatNumber(avgSpent);
-
-            // 渲染趋势图
-            renderCustomerTrendChart(data.trend_data);
-
-            // 更新客户排行表格
-            updateTopCustomersTable(data.top_customers);
-        }
-    } catch (error) {
-        showNotification('加载客户统计数据失败: ' + error.message, 'error');
-    }
-}
-
-// 渲染客户增长趋势图
-function renderCustomerTrendChart(trendData) {
-    const ctx = document.getElementById('customerTrendChart').getContext('2d');
-
-    if (charts['customerTrendChart']) {
-        charts['customerTrendChart'].destroy();
-    }
-
-    const labels = trendData.map(item => item.date);
-    const data = trendData.map(item => item.count);
-
-    charts['customerTrendChart'] = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: '新增客户',
-                data: data,
-                borderColor: '#03A9F4',
-                backgroundColor: 'rgba(3, 169, 244, 0.2)',
-                fill: true,
-                tension: 0.4
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    labels: {
-                        color: 'var(--color-gray-light)'
-                    }
-                }
-            },
-            scales: {
-                x: {
-                    ticks: {
-                        color: 'var(--color-gray-light)'
-                    },
-                    grid: {
-                        color: 'rgba(255, 255, 255, 0.1)'
-                    }
-                },
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        color: 'var(--color-gray-light)',
-                        precision: 0
-                    },
-                    grid: {
-                        color: 'rgba(255, 255, 255, 0.1)'
-                    }
-                }
-            }
-        }
-    });
-}
-
-// 更新客户排行表格
-function updateTopCustomersTable(customers) {
-    const tbody = document.querySelector('#top-customers-table tbody');
-    tbody.innerHTML = '';
-
-    customers.forEach(customer => {
-        const avgSpent = customer.order_count > 0 ? customer.total_spent / customer.order_count : 0;
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td><i class="fas fa-user"></i> ${customer.name}</td>
-            <td>${customer.order_count}</td>
-            <td><span class="badge badge-success">¥${formatNumber(customer.total_spent)}</span></td>
-            <td>¥${formatNumber(avgSpent)}</td>
-        `;
-        tbody.appendChild(row);
-    });
-}
-
-// 加载房间统计数据
+/=// 加载房间统计数据
 async function loadRoomStats() {
     try {
         const response = await fetch('/api/analytics/rooms');
