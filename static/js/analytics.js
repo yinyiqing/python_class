@@ -4,6 +4,7 @@ let currentTab = 'dashboard';
 
 // 页面加载完成后执行
 document.addEventListener('DOMContentLoaded', function() {
+    // 设置默认日期
     const today = new Date().toISOString().split('T')[0];
     const lastMonth = new Date();
     lastMonth.setMonth(lastMonth.getMonth() - 1);
@@ -12,27 +13,10 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('startDate').value = lastMonthDate;
     document.getElementById('endDate').value = today;
 
-    // 绑定按钮
-    const refreshBtn = document.getElementById('refresh-btn');
-    if (refreshBtn) refreshBtn.addEventListener('click', refreshAll);
-
-    const filterBtn = document.getElementById('filter-btn');
-    if (filterBtn) filterBtn.addEventListener('click', applyDateFilter);
-
-    const tabs = document.querySelectorAll('.tab-btn');
-    tabs.forEach(tab => {
-        tab.addEventListener('click', () => switchTab(tab.dataset.tab));
-    });
-
-    // 初次加载数据
-    refreshAll();
-});
-
-function refreshAll() {
+    // 加载数据
     loadDashboardData();
     loadCharts();
-}
-
+});
 
 // 切换标签页
 function switchTab(tabName) {
@@ -76,14 +60,7 @@ function switchTab(tabName) {
 // 加载仪表板数据
 async function loadDashboardData() {
     try {
-        const statDate = document.getElementById('startDate')?.value;
-
-        const url = statDate
-            ? `/api/analytics/dashboard?stat_date=${statDate.replaceAll('-', '/')}`
-            : '/api/analytics/dashboard';
-
-        const response = await fetch(url);
-
+        const response = await fetch('/api/analytics/dashboard');
         const result = await response.json();
 
         if (result.success) {
@@ -137,7 +114,7 @@ function updateDashboardStats(data) {
             icon: 'door-open',
             iconColor: '#FF9800',
             label: '入住率',
-            value: (summary.occupancy_rate <= 1 ? summary.occupancy_rate : summary.occupancy_rate).toFixed(2) + '%',
+            value: summary.occupancy_rate + '%',
             change: null
         },
         {
@@ -575,10 +552,7 @@ async function loadRoomStats() {
             // 更新统计卡片
             document.getElementById('total-rooms').textContent = data.total;
             document.getElementById('occupied-rooms').textContent = data.occupied;
-            let occupancyRate = data.occupancy_rate;
-            if (occupancyRate <= 1) occupancyRate = occupancyRate * 100;
-            document.getElementById('occupancy-rate').textContent = occupancyRate.toFixed(2) + '%';
-
+            document.getElementById('occupancy-rate').textContent = data.occupancy_rate + '%';
 
             // 计算平均房价
             const totalPrice = data.type_stats.reduce((sum, type) => sum + (type.avg_price * type.count), 0);
