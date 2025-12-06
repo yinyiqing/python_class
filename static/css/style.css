@@ -69,6 +69,13 @@ body {
     overflow-x: hidden;
 }
 
+.chart-container {
+    position: relative;
+    width: 100%;
+    height: 300px;   /* 关键 */
+}
+
+
 /*搜索框*/
 .search-box {
     display: flex;
