@@ -197,10 +197,16 @@ class Analytics:
                 'data': {}
             }
 
-    def get_room_statistics(self) -> Dict[str, Any]:
+    def get_room_statistics(self, stat_date: str = None):
+        
         """
         获取房间统计信息
         """
+        print("stat_date =", stat_date)
+
+        if not stat_date:
+            stat_date = datetime.now().strftime('%Y/%m/%d')
+
         try:
             # 房间总数及各状态统计
             status_sql = """
@@ -244,15 +250,22 @@ class Analytics:
 
             # 入住率（基于当前有订单的房间）
             occupied_sql = """
-                           SELECT COUNT(DISTINCT room_number) as occupied_count
-                           FROM orders
-                           WHERE order_status IN ('预定中', '已入住')
-                             AND DATE ('now') BETWEEN check_in_date \
-                             AND check_out_date \
-                           """
-            occupied_res = self.db.execute_query(occupied_sql)
+                            SELECT COUNT(DISTINCT room_number) as occupied_count
+                            FROM orders
+                            WHERE order_status IN ('预定中', '已入住')
+                            AND DATE(REPLACE(?, '/', '-')) >= DATE(REPLACE(check_in_date, '/', '-'))
+                            AND DATE(REPLACE(?, '/', '-')) <  DATE(REPLACE(check_out_date, '/', '-'))
+
+                            """
+
+            occupied_res = self.db.execute_query(
+                occupied_sql,
+                (stat_date, stat_date)
+            )
+
             occupied = occupied_res[0]['occupied_count'] if occupied_res else 0
             occupancy_rate = (occupied / total * 100) if total > 0 else 0
+
 
             return {
                 'success': True,
@@ -357,55 +370,67 @@ class Analytics:
                 'data': {}
             }
 
-    def get_dashboard_summary(self) -> Dict[str, Any]:
+    def get_dashboard_summary(self, stat_date: str = None) -> Dict[str, Any]:
         """
-        获取仪表板汇总数据
-        包含所有关键指标的概览
+        获取仪表板汇总数据（基于指定日期）
         """
         try:
-            # 获取所有统计数据
+            # 统一统计日期
+            if not stat_date:
+                stat_date = datetime.now().strftime('%Y/%m/%d')
+
+            # 各模块统计
             employee_stats = self.get_employee_statistics()
             order_stats = self.get_order_statistics()
             customer_stats = self.get_customer_statistics()
-            room_stats = self.get_room_statistics()
+            room_stats = self.get_room_statistics(stat_date)
 
-            # 今日收入
-            today = datetime.now().strftime('%Y-%m-%d')
-            today_revenue_sql = """
-                                SELECT SUM(total_amount) as today_revenue, \
-                                       SUM(paid_amount)  as today_paid
-                                FROM orders
-                                WHERE DATE (created_at) = DATE (?) \
-                                """
-            today_revenue_res = self.db.execute_query(today_revenue_sql, (today,))
-            today_revenue = today_revenue_res[0] if today_revenue_res else {
-                'today_revenue': 0,
-                'today_paid': 0
+            # 指定日期收入（不是写死“今天”）
+            revenue_sql = """
+                SELECT
+                    COUNT(*) as total_orders,
+                    SUM(CASE WHEN order_status = '预定中' THEN 1 ELSE 0 END) as reserved,
+                    SUM(CASE WHEN order_status = '已入住' THEN 1 ELSE 0 END) as checked_in,
+                    SUM(CASE WHEN order_status = '已完成' THEN 1 ELSE 0 END) as completed,
+                    SUM(total_amount) as total_amount,
+                    SUM(paid_amount) as paid_amount
+                FROM orders
+                WHERE DATE(REPLACE(created_at, '/', '-')) = DATE(REPLACE(?, '/', '-'))
+            """
+
+            revenue_res = self.db.execute_query(revenue_sql, (stat_date,))
+            revenue = revenue_res[0] if revenue_res else {
+                'total_orders': 0,
+                'reserved': 0,
+                'checked_in': 0,
+                'completed': 0,
+                'total_amount': 0,
+                'paid_amount': 0
             }
 
-            # 近期趋势（最近7天）
+            # 最近 7 天趋势（这里依然是“相对今天”，合理）
             week_trend_sql = """
-                             SELECT
-                                 DATE (created_at) as date, COUNT (*) as orders, SUM (total_amount) as revenue
-                             FROM orders
-                             WHERE created_at >= DATE ('now', '-7 days')
-                             GROUP BY DATE (created_at)
-                             ORDER BY date \
-                             """
+                SELECT
+                    DATE(REPLACE(created_at, '/', '-')) as date,
+                    COUNT(*) as orders,
+                    SUM(total_amount) as revenue
+                FROM orders
+                WHERE DATE(REPLACE(created_at, '/', '-')) >= DATE('now', '-6 days')
+                GROUP BY DATE(REPLACE(created_at, '/', '-'))
+                ORDER BY date
+            """
             week_trend = self.db.execute_query(week_trend_sql) or []
 
-            # 关键指标
             summary = {
+                'stat_date': stat_date,
                 'employees': employee_stats['data']['total'] if employee_stats['success'] else 0,
                 'active_employees': employee_stats['data']['active'] if employee_stats['success'] else 0,
                 'customers': customer_stats['data']['total'] if customer_stats['success'] else 0,
                 'rooms': room_stats['data']['total'] if room_stats['success'] else 0,
                 'occupied_rooms': room_stats['data']['occupied'] if room_stats['success'] else 0,
                 'occupancy_rate': room_stats['data']['occupancy_rate'] if room_stats['success'] else 0,
-                'today_revenue': today_revenue.get('today_revenue', 0),
-                'today_paid': today_revenue.get('today_paid', 0),
                 'total_orders': order_stats['data']['total'] if order_stats['success'] else 0,
-                'today_new_customers': customer_stats['data']['today_new'] if customer_stats['success'] else 0
+                'revenue': revenue
             }
 
             return {
@@ -418,14 +443,17 @@ class Analytics:
                     'customer_stats': customer_stats['data'] if customer_stats['success'] else {},
                     'room_stats': room_stats['data'] if room_stats['success'] else {}
                 },
-                'message': '仪表板数据加载完成'
+                'message': f'{stat_date} 仪表板数据加载完成'
             }
+
         except Exception as e:
             return {
                 'success': False,
                 'message': f'仪表板数据加载失败: {str(e)}',
                 'data': {}
             }
+
+
 
     def generate_chart_data(self, chart_type: str, params: Dict[str, Any] = None) -> Dict[str, Any]:
         """

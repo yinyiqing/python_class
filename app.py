@@ -563,8 +563,11 @@ def analytics():
 def api_get_dashboard():
     if not session.get('logged_in'):
         return jsonify({'success': False, 'message': '请先登录'}), 401
+    stat_date = request.args.get('stat_date')
 
-    result = analytics_manager.get_dashboard_summary()
+    print('dashboard stat_date =', stat_date)  # 调试用
+
+    result = analytics_manager.get_dashboard_summary(stat_date)
     return jsonify(result)
 
 @app.route('/api/analytics/employees', methods=['GET'])
