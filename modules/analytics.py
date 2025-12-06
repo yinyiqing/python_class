@@ -198,46 +198,48 @@ class Analytics:
             }
 
     def get_room_statistics(self, stat_date: str = None):
-        
         """
         获取房间统计信息
         """
         print("stat_date =", stat_date)
 
         if not stat_date:
-            stat_date = datetime.now().strftime('%Y/%m/%d')
-
+            stat_date = datetime.now().strftime('%Y-%m-%d')
+        
+        # 统一日期格式为 YYYY-MM-DD
+        stat_date_clean = stat_date.replace('/', '-')
+        
         try:
             # 房间总数及各状态统计
             status_sql = """
-                         SELECT status, \
+                        SELECT status, \
                                 COUNT(*) as count,
                             ROUND(AVG(price), 2) as avg_price
-                         FROM rooms
-                         GROUP BY status \
-                         """
+                        FROM rooms
+                        GROUP BY status \
+                        """
             status_stats = self.db.execute_query(status_sql) or []
 
             # 房型统计
             type_sql = """
-                       SELECT room_type, \
-                              COUNT(*) as count,
-                          ROUND(AVG(price), 2) as avg_price,
-                          ROUND(AVG(area), 2) as avg_area
-                       FROM rooms
-                       GROUP BY room_type
-                       ORDER BY count DESC \
-                       """
+                    SELECT room_type, \
+                            COUNT(*) as count,
+                        ROUND(AVG(price), 2) as avg_price,
+                        ROUND(AVG(area), 2) as avg_area
+                    FROM rooms
+                    GROUP BY room_type
+                    ORDER BY count DESC \
+                    """
             type_stats = self.db.execute_query(type_sql) or []
 
             # 价格区间统计
             price_sql = """
                         SELECT CASE \
-                                   WHEN price < 200 THEN '经济型 (<200)' \
-                                   WHEN price BETWEEN 200 AND 400 THEN '舒适型 (200-400)' \
-                                   WHEN price > 400 THEN '豪华型 (>400)' \
-                                   END as price_range, \
-                               COUNT(*) as count
+                                WHEN price < 200 THEN '经济型 (<200)' \
+                                WHEN price BETWEEN 200 AND 400 THEN '舒适型 (200-400)' \
+                                WHEN price > 400 THEN '豪华型 (>400)' \
+                                END as price_range, \
+                            COUNT(*) as count
                         FROM rooms
                         GROUP BY price_range
                         ORDER BY price_range \
@@ -248,24 +250,144 @@ class Analytics:
             total_res = self.db.execute_query("SELECT COUNT(*) as total FROM rooms")
             total = total_res[0]['total'] if total_res else 0
 
-            # 入住率（基于当前有订单的房间）
+            # 第一步：查看所有当前有效的订单
+            debug_sql = """
+                    SELECT 
+                        order_id,
+                        room_number,
+                        check_in_date,
+                        check_out_date,
+                        order_status,
+                        DATE(check_in_date) as check_in_date_parsed,
+                        DATE(check_out_date) as check_out_date_parsed
+                    FROM orders
+                    WHERE order_status IN ('预定中', '已入住')
+                    """
+            debug_result = self.db.execute_query(debug_sql) or []
+            print("=== 调试信息 - 当前有效订单 ===")
+            print(f"找到 {len(debug_result)} 个有效订单")
+            for order in debug_result:
+                print(f"订单 {order['order_id']}: 房间 {order['room_number']}, "
+                    f"入住 {order['check_in_date']} -> 退房 {order['check_out_date']}, "
+                    f"状态: {order['order_status']}")
+                print(f"  解析后入住: {order.get('check_in_date_parsed')}, "
+                    f"解析后退房: {order.get('check_out_date_parsed')}")
+            print("=== 调试信息结束 ===\n")
+
+            # 第二步：测试统计日期的解析
+            test_date_sql = """
+                        SELECT DATE(?) as test_date_parsed,
+                                DATE('now') as current_date
+                        """
+            test_date_res = self.db.execute_query(test_date_sql, (stat_date_clean,))
+            print(f"测试日期解析: 输入={stat_date_clean}, 解析结果={test_date_res}")
+
+            # 第三步：详细的入住率查询（带更多信息）
+            detailed_occupied_sql = """
+                                SELECT 
+                                    o.order_id,
+                                    o.room_number,
+                                    o.check_in_date,
+                                    o.check_out_date,
+                                    o.order_status,
+                                    DATE(o.check_in_date) as ci_parsed,
+                                    DATE(o.check_out_date) as co_parsed,
+                                    DATE(?) as stat_date_parsed,
+                                    CASE 
+                                        WHEN DATE(?) >= DATE(o.check_in_date) 
+                                            AND DATE(?) < DATE(o.check_out_date)
+                                        THEN 1 
+                                        ELSE 0 
+                                    END as is_occupied
+                                FROM orders o
+                                WHERE o.order_status IN ('预定中', '已入住')
+                                ORDER BY o.order_id
+                                """
+            detailed_res = self.db.execute_query(
+                detailed_occupied_sql,
+                (stat_date_clean, stat_date_clean, stat_date_clean)
+            )
+            
+            print(f"\n=== 详细的入住判断 ===")
+            print(f"统计日期: {stat_date_clean}")
+            if detailed_res:
+                for row in detailed_res:
+                    print(f"订单 {row['order_id']}: 房间 {row['room_number']}")
+                    print(f"  原始: 入住 {row['check_in_date']} -> 退房 {row['check_out_date']}")
+                    print(f"  解析: 入住 {row['ci_parsed']} -> 退房 {row['co_parsed']}")
+                    print(f"  统计日期解析: {row['stat_date_parsed']}")
+                    print(f"  是否入住: {row['is_occupied']}")
+                    
+                    # 额外的日期比较逻辑
+                    try:
+                        # 尝试手动比较
+                        check_in = str(row['check_in_date'])
+                        check_out = str(row['check_out_date'])
+                        stat_date_str = stat_date_clean
+                        
+                        print(f"  手动比较: {stat_date_str} >= {check_in} and < {check_out}")
+                        print(f"  比较结果: {'是' if stat_date_str >= check_in and stat_date_str < check_out else '否'}")
+                    except Exception as e:
+                        print(f"  手动比较错误: {e}")
+                    print()
+            
+            # 第四步：计算入住率
             occupied_sql = """
-                            SELECT COUNT(DISTINCT room_number) as occupied_count
-                            FROM orders
-                            WHERE order_status IN ('预定中', '已入住')
-                            AND DATE(REPLACE(?, '/', '-')) >= DATE(REPLACE(check_in_date, '/', '-'))
-                            AND DATE(REPLACE(?, '/', '-')) <  DATE(REPLACE(check_out_date, '/', '-'))
-
-                            """
-
+                        SELECT COUNT(DISTINCT room_number) as occupied_count
+                        FROM orders
+                        WHERE order_status IN ('预定中', '已入住')
+                        AND DATE(?) >= DATE(check_in_date)
+                        AND DATE(?) < DATE(check_out_date)
+                        """
+            
             occupied_res = self.db.execute_query(
                 occupied_sql,
-                (stat_date, stat_date)
+                (stat_date_clean, stat_date_clean)
             )
-
+            
+            print(f"\n=== 入住率计算结果 ===")
+            print(f"查询结果: {occupied_res}")
+            
             occupied = occupied_res[0]['occupied_count'] if occupied_res else 0
             occupancy_rate = (occupied / total * 100) if total > 0 else 0
-
+            
+            print(f"入住房间数: {occupied}, 总房间数: {total}, 入住率: {occupancy_rate}%")
+            
+            # 第五步：尝试其他查询方法
+            if occupied == 0:
+                print("\n=== 尝试其他查询方法 ===")
+                
+                # 方法A：使用字符串比较
+                alt_sql_a = """
+                        SELECT COUNT(DISTINCT room_number) as occupied_count
+                        FROM orders
+                        WHERE order_status IN ('预定中', '已入住')
+                        AND ? >= check_in_date
+                        AND ? < check_out_date
+                        """
+                alt_res_a = self.db.execute_query(alt_sql_a, (stat_date_clean, stat_date_clean))
+                print(f"方法A（字符串比较）结果: {alt_res_a}")
+                
+                # 方法B：只检查 check_in_date 等于统计日期的情况
+                alt_sql_b = """
+                        SELECT COUNT(DISTINCT room_number) as occupied_count
+                        FROM orders
+                        WHERE order_status IN ('预定中', '已入住')
+                        AND DATE(check_in_date) = DATE(?)
+                        """
+                alt_res_b = self.db.execute_query(alt_sql_b, (stat_date_clean,))
+                print(f"方法B（入住日期等于统计日期）结果: {alt_res_b}")
+                
+                # 方法C：查看今天的所有订单
+                today_sql = """
+                        SELECT room_number, check_in_date, check_out_date, order_status
+                        FROM orders
+                        WHERE DATE(check_in_date) <= DATE('now')
+                        AND DATE(check_out_date) >= DATE('now')
+                        AND order_status IN ('预定中', '已入住')
+                        """
+                today_res = self.db.execute_query(today_sql)
+                print(f"今天（当前日期）的有效订单: {today_res}")
 
             return {
                 'success': True,
@@ -280,12 +402,15 @@ class Analytics:
                 'message': f'房间统计完成，共{total}间房间，入住率{round(occupancy_rate, 2)}%'
             }
         except Exception as e:
+            print(f"房间统计异常: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return {
                 'success': False,
                 'message': f'房间统计失败: {str(e)}',
                 'data': {}
             }
-
+        
     def get_revenue_analysis(self, start_date: str = None, end_date: str = None) -> Dict[str, Any]:
         """
         获取收入分析
