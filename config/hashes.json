@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "generated_at": "2025-12-06T19:00:21.466997",
+    "generated_at": "2025-12-06T19:03:19.704665",
     "file_count": 29
   },
   "file_hashes": {
@@ -22,7 +22,7 @@
     "static/js/employees.js": "3f1e7cacb208c51280dcc21dd82c0744ae0e037e1f39e97b3d105b68603f040d",
     "static/js/login.js": "362d1b9e0790aa99a66296656dca6f61c6105eaa3b84fc5ffc37355093ac28a2",
     "static/js/rooms.js": "f3d2ee163f53b33397a5733ed094b58cf7ce3cc8ad477e3fe04f32186357198d",
-    "templates/analytics.html": "70ec73c68bd0e544b0a5b1fe2a6295c4aac3dfbcacc344152b9232f32cec8753",
+    "templates/analytics.html": "f61a4e472825b72bb04e78e9dd0835073dfffa0765f7487cac84c9659bf8f981",
     "templates/base.html": "2032c511467d85a908412458916887224ab4b34855d0af66f9ba78acf3d711a7",
     "templates/customers.html": "ea21f425daa2452de7b44e5847e5c0725189592e6447e3ff437592a0cbe67475",
     "templates/dashboard.html": "7d84a08484310f410e6f22fb453cd837d711d025f2502fb37662772a727ffbec",
