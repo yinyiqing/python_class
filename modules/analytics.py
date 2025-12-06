@@ -251,7 +251,7 @@ class Analytics:
             total_res = self.db.execute_query("SELECT COUNT(*) as total FROM rooms")
             total = total_res[0]['total'] if total_res else 0
 
-            # 第一步：查看所有当前有效的订单
+            # 查看所有当前有效的订单
             debug_sql = """
                     SELECT 
                         order_id,
@@ -275,7 +275,7 @@ class Analytics:
                     f"解析后退房: {order.get('check_out_date_parsed')}")
             print("=== 调试信息结束 ===\n")
 
-            # 第二步：测试统计日期的解析
+            #测试统计日期的解析
             test_date_sql = """
                         SELECT DATE(?) as test_date_parsed,
                                 DATE('now') as current_date
@@ -283,7 +283,7 @@ class Analytics:
             test_date_res = self.db.execute_query(test_date_sql, (stat_date_clean,))
             print(f"测试日期解析: 输入={stat_date_clean}, 解析结果={test_date_res}")
 
-            # 第三步：详细的入住率查询（带更多信息）
+            #详细的入住率查询（带更多信息）
             detailed_occupied_sql = """
                                 SELECT 
                                     o.order_id,
@@ -332,7 +332,7 @@ class Analytics:
                         print(f"  手动比较错误: {e}")
                     print()
             
-            # 第四步：计算入住率
+            #计算入住率
             occupied_sql = """
                         SELECT COUNT(DISTINCT room_number) as occupied_count
                         FROM orders
@@ -354,7 +354,7 @@ class Analytics:
             
             print(f"入住房间数: {occupied}, 总房间数: {total}, 入住率: {occupancy_rate}%")
             
-            # 第五步：尝试其他查询方法
+            # 尝试其他查询方法
             if occupied == 0:
                 print("\n=== 尝试其他查询方法 ===")
                 
@@ -511,7 +511,7 @@ class Analytics:
             customer_stats = self.get_customer_statistics()
             room_stats = self.get_room_statistics(stat_date)
 
-            # 指定日期收入（不是写死“今天”）
+            # 指定日期收入
             revenue_sql = """
                 SELECT
                     COUNT(*) as total_orders,
@@ -534,7 +534,7 @@ class Analytics:
                 'paid_amount': 0
             }
 
-            # 最近 7 天趋势（这里依然是“相对今天”，合理）
+            # 最近 7 天趋势
             week_trend_sql = """
                 SELECT
                     DATE(REPLACE(created_at, '/', '-')) as date,

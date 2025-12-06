@@ -75,12 +75,11 @@ async function loadDashboardData() {
     }
 }
 
-// 更新仪表板统计数据
+
 // 更新仪表板统计数据
 function updateDashboardStats(data) {
     console.log('updateDashboardStats called with:', data);
-    
-    // 容错处理
+
     if (!data) {
         console.error('No data provided to updateDashboardStats');
         return;
@@ -91,13 +90,11 @@ function updateDashboardStats(data) {
         console.error('Element #dashboard-stats not found');
         return;
     }
-    
-    // 调试当前样式
+
     const computedStyle = window.getComputedStyle(statsGrid);
     console.log('Current statsGrid style - display:', computedStyle.display, 
                 'gridTemplateColumns:', computedStyle.gridTemplateColumns);
     
-    // 强制设置容器为网格布局
     statsGrid.style.cssText = `
         display: grid !important;
         grid-template-columns: repeat(4, 1fr) !important;
@@ -106,11 +103,9 @@ function updateDashboardStats(data) {
         width: 100% !important;
         box-sizing: border-box !important;
     `;
-    
-    // 使用实际数据或默认值
+
     const summary = data.summary || {};
-    
-    // 创建卡片数据
+
     const statCards = [
         {
             icon: 'users',
@@ -171,16 +166,13 @@ function updateDashboardStats(data) {
     ];
     
     console.log('Creating', statCards.length, 'cards');
-    
-    // 清空容器
+
     statsGrid.innerHTML = '';
-    
-    // 创建并添加卡片
+
     statCards.forEach((stat, index) => {
-        // 创建卡片容器
+
         const card = document.createElement('div');
-        
-        // 设置卡片基础样式
+
         card.style.cssText = `
             background-color: var(--color-secondary);
             border-radius: 12px;
@@ -199,7 +191,6 @@ function updateDashboardStats(data) {
             position: relative;
         `;
         
-        // 添加悬停效果
         card.addEventListener('mouseenter', () => {
             card.style.transform = 'translateY(-5px)';
             card.style.boxShadow = '0 8px 25px rgba(0,0,0,0.3)';
@@ -209,8 +200,6 @@ function updateDashboardStats(data) {
             card.style.transform = 'translateY(0)';
             card.style.boxShadow = '0 4px 10px rgba(0,0,0,0.15)';
         });
-        
-        // 创建图标样式
         const iconStyle = `
             width: 60px;
             height: 60px;
@@ -224,8 +213,6 @@ function updateDashboardStats(data) {
             font-size: 24px;
             transition: all 0.3s ease;
         `;
-        
-        // 创建卡片内容
         card.innerHTML = `
             <div style="${iconStyle}">
                 <i class="fas fa-${stat.icon}"></i>
@@ -250,13 +237,10 @@ function updateDashboardStats(data) {
                 ${stat.value}
             </div>
         `;
-        
-        // 添加到网格容器
         statsGrid.appendChild(card);
         console.log(`Card ${index} created:`, stat.label);
     });
     
-    // 添加响应式处理
     function updateGridLayout() {
         const width = window.innerWidth;
         
@@ -268,36 +252,30 @@ function updateDashboardStats(data) {
             statsGrid.style.gridTemplateColumns = 'repeat(4, 1fr) !important';
         }
     }
-    
-    // 初始布局
+
     updateGridLayout();
     
-    // 监听窗口大小变化
     window.addEventListener('resize', updateGridLayout);
-    
-    // 检查最终布局
+
     setTimeout(() => {
         console.log('Final grid layout:');
         console.log('Grid children count:', statsGrid.children.length);
         console.log('Grid computed display:', window.getComputedStyle(statsGrid).display);
         console.log('Grid computed columns:', window.getComputedStyle(statsGrid).gridTemplateColumns);
         
-        // 检查每个卡片的位置
         Array.from(statsGrid.children).forEach((child, i) => {
             const rect = child.getBoundingClientRect();
             console.log(`Card ${i}: x=${rect.x}, y=${rect.y}, width=${rect.width}, height=${rect.height}`);
         });
     }, 100);
 }
-// 加载图表数据
+
 async function loadCharts() {
-    // 加载员工部门分布图
+    // 员工部门分布图
     await loadChart('employee_dept', 'employeeDeptChart', 'doughnut');
-
-    // 加载收入趋势图
+    // 收入趋势图
     await loadChart('revenue_trend', 'revenueTrendChart', 'line');
-
-    // 加载房型分布图
+    // 房型分布图
     await loadChart('room_type', 'roomTypeChart', 'doughnut');
 }
 
@@ -317,8 +295,6 @@ async function loadChart(chartType, canvasId, chartTypeName) {
 // 渲染图表
 function renderChart(canvasId, chartData, type) {
     const ctx = document.getElementById(canvasId).getContext('2d');
-
-    // 销毁现有的图表实例
     if (charts[canvasId]) {
         charts[canvasId].destroy();
     }
@@ -362,7 +338,7 @@ function renderChart(canvasId, chartData, type) {
     charts[canvasId] = new Chart(ctx, config);
 }
 
-// 加载员工统计数据
+/*加载员工统计数据
 async function loadEmployeeStats() {
     try {
         const response = await fetch('/api/analytics/employees');
@@ -371,21 +347,19 @@ async function loadEmployeeStats() {
         if (result.success) {
             const data = result.data;
 
-            // 更新统计卡片
             document.getElementById('total-employees').textContent = data.total;
             document.getElementById('active-employees').textContent = data.active;
             document.getElementById('terminated-employees').textContent = data.terminated;
             document.getElementById('active-rate').textContent = data.active_rate + '%';
 
-            // 渲染柱状图
             renderEmployeeDeptBarChart(data.by_department);
         }
     } catch (error) {
         showNotification('加载员工统计数据失败: ' + error.message, 'error');
     }
-}
+}*/
 
-// 渲染员工部门柱状图
+/*渲染员工部门柱状图
 function renderEmployeeDeptBarChart(deptData) {
     const ctx = document.getElementById('employeeDeptBarChart').getContext('2d');
 
@@ -441,12 +415,12 @@ function renderEmployeeDeptBarChart(deptData) {
         }
     });
 }
+*/
 
 
+/*
 
-
-
-/=// 加载房间统计数据
+// 加载房间统计数据
 async function loadRoomStats() {
     try {
         const response = await fetch('/api/analytics/rooms');
@@ -474,9 +448,9 @@ async function loadRoomStats() {
     } catch (error) {
         showNotification('加载房间统计数据失败: ' + error.message, 'error');
     }
-}
+}*/
 
-// 渲染房间状态饼图
+/*渲染房间状态饼图
 function renderRoomStatusChart(statusData) {
     const ctx = document.getElementById('roomStatusChart').getContext('2d');
 
@@ -514,9 +488,9 @@ function renderRoomStatusChart(statusData) {
             }
         }
     });
-}
+}*/
 
-// 渲染房型价格柱状图
+/*渲染房型价格柱状图
 function renderRoomPriceChart(typeData) {
     const ctx = document.getElementById('roomPriceChart').getContext('2d');
 
@@ -606,9 +580,9 @@ function renderRoomPriceChart(typeData) {
             }
         }
     });
-}
+}*/
 
-// 加载收入分析数据
+/*加载收入分析数据
 async function loadRevenueAnalysis() {
     try {
         const startDate = document.getElementById('startDate').value;
@@ -811,7 +785,7 @@ function renderPaymentMethodChart(paymentData) {
             }
         }
     });
-}
+}*/
 
 // 应用日期筛选
 function applyDateFilter() {

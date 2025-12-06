@@ -1,11 +1,11 @@
 {
   "metadata": {
-    "generated_at": "2025-12-07T04:43:03.007118",
+    "generated_at": "2025-12-07T04:52:12.476370",
     "file_count": 29
   },
   "file_hashes": {
     "app.py": "227c10ae29ae087ab482e037d6b70223cda9e3ab527b7c128debba2c33204d14",
-    "modules/analytics.py": "01c223af8388c77301da15178676c0e2698d6b786ea481f404e79d1a3b7b98ea",
+    "modules/analytics.py": "e5e96f63a7bfdaf7754c64e59f5703e46ddd27472194790198a84ea6af3a3832",
     "modules/auth.py": "18c718c0881def55c102f57961ec25bb844b0cdaf850d04408e8f1a2db443fcd",
     "modules/config.py": "e475c5640cabd22c0e8784b14edf4925a014430168db8b2e891f96f40d8208a5",
     "modules/database.py": "a69070e550025c9b6f9fa44259726055fed343a4e77646fffd1ff466ab7f4442",
@@ -16,7 +16,7 @@
     "static/css/login.css": "46b9f5670da14e6a7f1dfdd4d49eae217fca25735d26f50f57e07f2d06141630",
     "static/css/style.css": "7d1681661a9187dc73769e29b752cde7c62ffdd900bfa21f805bda510355af40",
     "static/css/theme.css": "928ed7c75f5cbf27f57f8c8f4ee24448b8dc4f02725366cd6cfa46f2e2390f75",
-    "static/js/analytics.js": "50befc9d8954c1f69c9d50090c0ee54d839f8dcb571d6957f1c8af2260592dac",
+    "static/js/analytics.js": "86ac14d9d38d432aed97ad0464053bca18e5feeca196c6e750e2f44abb747937",
     "static/js/common.js": "15aa5465aaf1b2c26f0bcf271eefc890beb47bb9327d4f3013db7a34cf2019ce",
     "static/js/customers.js": "3f18f08b1faafc4db58a53606d948367bff830c96b7d1547882b128b7f849958",
     "static/js/employees.js": "3a5f3c2454bc920d2af181cc59251dec33cc50cb142f7d2199831af3913d45a3",
