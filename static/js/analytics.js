@@ -16,6 +16,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // 加载数据
     loadDashboardData();
     loadCharts();
+    loadOrderStatusChart();
+    
 });
 
 // 切换标签页
@@ -158,9 +160,6 @@ function updateDashboardStats(data) {
 async function loadCharts() {
     // 加载员工部门分布图
     await loadChart('employee_dept', 'employeeDeptChart', 'doughnut');
-
-    // 加载订单状态分布图
-    await loadChart('order_status', 'orderStatusChart', 'pie');
 
     // 加载收入趋势图
     await loadChart('revenue_trend', 'revenueTrendChart', 'line');
@@ -310,72 +309,7 @@ function renderEmployeeDeptBarChart(deptData) {
     });
 }
 
-// 加载订单统计数据
-async function loadOrderStats() {
-    try {
-        const response = await fetch('/api/analytics/orders');
-        const result = await response.json();
 
-        if (result.success) {
-            const data = result.data;
-
-            // 更新统计卡片
-            document.getElementById('total-orders').textContent = data.total;
-            document.getElementById('today-orders').textContent = data.today_stats.today_total || 0;
-            document.getElementById('today-revenue').textContent = '¥' + formatNumber(data.today_stats.today_total_amount || 0);
-            document.getElementById('payment-rate').textContent = data.payment_rate + '%';
-
-            // 渲染饼图
-            renderOrderStatusPieChart(data.by_status);
-
-            // 渲染支付状态柱状图
-            renderPaymentStatusChart(data.by_payment);
-        }
-    } catch (error) {
-        showNotification('加载订单统计数据失败: ' + error.message, 'error');
-    }
-}
-
-// 渲染订单状态饼图
-function renderOrderStatusPieChart(statusData) {
-    const ctx = document.getElementById('orderStatusPieChart').getContext('2d');
-
-    if (charts['orderStatusPieChart']) {
-        charts['orderStatusPieChart'].destroy();
-    }
-
-    const labels = statusData.map(item => item.order_status);
-    const data = statusData.map(item => item.count);
-
-    charts['orderStatusPieChart'] = new Chart(ctx, {
-        type: 'pie',
-        data: {
-            labels: labels,
-            datasets: [{
-                data: data,
-                backgroundColor: [
-                    '#4CAF50', // 已完成
-                    '#2196F3', // 已入住
-                    '#FF9800', // 预定中
-                    '#F44336', // 已取消
-                    '#9C27B0'  // 异常
-                ]
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'right',
-                    labels: {
-                        color: 'var(--color-gray-light)'
-                    }
-                }
-            }
-        }
-    });
-}
 
 // 渲染支付状态柱状图
 function renderPaymentStatusChart(paymentData) {

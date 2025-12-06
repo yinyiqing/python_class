@@ -79,6 +79,7 @@ class Analytics:
                           GROUP BY payment_status
                           '''
             by_payment = self.db.execute_query(payment_sql) or []
+            print("订单状态统计 by_status:", by_status)
 
             today = datetime.now().strftime('%Y-%m-%d')
             today_sql = '''
@@ -609,6 +610,8 @@ class Analytics:
 
             elif chart_type == 'order_status':
                 # 订单状态分布图
+                print("订单状态统计:", stats)
+
                 stats = self.get_order_statistics()
                 if stats['success']:
                     by_status = stats['data']['by_status']
