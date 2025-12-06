@@ -4,8 +4,9 @@
 {% block page_title %}数据统计{% endblock %}
 
 {% block head %}
+
 {{ super() }}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <style>
     /* 分析页面样式 - 与现有样式系统集成 */
     .analytics-content {
@@ -306,19 +307,28 @@
             <div class="chart-grid">
                 <div class="chart-container">
                     <h3><i class="fas fa-chart-pie"></i> 员工部门分布</h3>
-                    <canvas id="employeeDeptChart"></canvas>
+                    <div style="height:300px;">
+                        <canvas id="employeeDeptChart"></canvas>
+                    </div>
+
                 </div>
                 <div class="chart-container">
                     <h3><i class="fas fa-chart-pie"></i> 订单状态分布</h3>
-                    <canvas id="orderStatusChart"></canvas>
+                    <div style="height:300px;">
+                        <canvas id="orderStatusChart"></canvas>
+                    </div>
                 </div>
                 <div class="chart-container">
                     <h3><i class="fas fa-chart-line"></i> 收入趋势</h3>
-                    <canvas id="revenueTrendChart"></canvas>
+                    <div style="height:300px;">
+                        <canvas id="revenueTrendChart"></canvas>
+                    </div>
                 </div>
                 <div class="chart-container">
                     <h3><i class="fas fa-chart-pie"></i> 房型分布</h3>
-                    <canvas id="roomTypeChart"></canvas>
+                    <div style="height:300px;">
+                        <canvas id="roomTypeChart"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
@@ -573,5 +583,6 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="{{ url_for('static', filename='js/analytics.js') }}"></script>
 {% endblock %}
