@@ -10,6 +10,7 @@ __pycache__
 
 # 配置文件
 config/admin.cfg
+config/permission.cfg
 config/weather_api.cfg
 
 # 数据库

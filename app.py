@@ -46,12 +46,27 @@ def login_post():
     username = request.form.get('username')
     password = request.form.get('password')
 
+    # 管理员
     if auth_manager.verify_admin(username, password):
         session['logged_in'] = True
         session['username'] = username
+        session['role'] = 'admin'
         return jsonify({'success': True, 'message': '登录成功'})
-    else:
-        return jsonify({'success': False, 'message': '用户名或密码错误'})
+
+    # 普通员工
+    result = auth_manager.verify_employee(db, username, password)
+    if result['success']:
+        employee = result['employee']
+        session['logged_in'] = True
+        session['username'] = username
+        session['employee_id'] = employee['id']
+        session['employee_name'] = employee['name']
+        session['department'] = employee['department']
+        session['role'] = 'employee'
+        session['allowed_pages'] = result['allowed_pages']
+        return jsonify({'success': True, 'message': '登录成功'})
+
+    return jsonify({'success': False, 'message': '用户名或密码错误'})
 
 @app.route('/change-password', methods=['POST'])
 def change_password():
@@ -263,7 +278,17 @@ def api_search_customers():
 def rooms():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
-    return render_template('rooms.html', username=session.get('username'))
+
+    if session.get('role') == 'admin':
+        return render_template('rooms.html', username=session.get('username'))
+
+    elif session.get('role') == 'employee':
+        department = session.get('department')
+        if not auth_manager.check_permission(department, 'rooms'):
+            return redirect(url_for('dashboard'))
+
+    username = session.get('username') if session.get('role') == 'admin' else session.get('employee_name')
+    return render_template('rooms.html', username=username)
 
 @app.route('/api/rooms/list', methods=['GET'])
 def api_get_rooms():
@@ -295,13 +320,33 @@ def api_room_status():
 def customers():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
-    return render_template('customers.html', username=session.get('username'))
+
+    if session.get('role') == 'admin':
+        return render_template('customers.html', username=session.get('username'))
+
+    elif session.get('role') == 'employee':
+        department = session.get('department')
+        if not auth_manager.check_permission(department, 'customers'):
+            return redirect(url_for('dashboard'))
+
+    username = session.get('username') if session.get('role') == 'admin' else session.get('employee_name')
+    return render_template('customers.html', username=username)
 
 @app.route('/orders')
 def orders():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
-    return render_template('orders.html', username=session.get('username'))
+
+    if session.get('role') == 'admin':
+        return render_template('orders.html', username=session.get('username'))
+
+    elif session.get('role') == 'employee':
+        department = session.get('department')
+        if not auth_manager.check_permission(department, 'orders'):
+            return redirect(url_for('dashboard'))
+
+    username = session.get('username') if session.get('role') == 'admin' else session.get('employee_name')
+    return render_template('orders.html', username=username)
 
 # 订单管理API路由
 @app.route('/api/orders', methods=['GET'])
