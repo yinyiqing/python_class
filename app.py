@@ -104,7 +104,17 @@ def dashboard():
 def employees():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
-    return render_template('employees.html', username=session.get('username'))
+
+    if session.get('role') == 'admin':
+        return render_template('employees.html', username=session.get('username'))
+
+    elif session.get('role') == 'employee':
+        department = session.get('department')
+        if not auth_manager.check_permission(department, 'employees'):
+            return redirect(url_for('dashboard'))
+
+    username = session.get('username') if session.get('role') == 'admin' else session.get('employee_name')
+    return render_template('employees.html', username=username)
 
 # 部门管理路由
 @app.route('/api/department/list', methods=['GET'])
@@ -619,7 +629,17 @@ def api_export_orders():
 def analytics():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
-    return render_template('analytics.html', username=session.get('username'))
+
+    if session.get('role') == 'admin':
+        return render_template('analytics.html', username=session.get('username'))
+
+    elif session.get('role') == 'employee':
+        department = session.get('department')
+        if not auth_manager.check_permission(department, 'analytics'):
+            return redirect(url_for('dashboard'))
+
+    username = session.get('username') if session.get('role') == 'admin' else session.get('employee_name')
+    return render_template('analytics.html', username=username)
 
 @app.route('/api/analytics/dashboard', methods=['GET'])
 def api_get_dashboard():

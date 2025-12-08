@@ -1,13 +1,13 @@
 {
   "metadata": {
-    "generated_at": "2025-12-08T03:24:10.945589",
+    "generated_at": "2025-12-08T16:12:47.547558",
     "file_count": 29
   },
   "file_hashes": {
-    "app.py": "9c79e1c0c004ed63f1c9b746037f23b8af803803f21ce9123dd06b6bde5f1f9e",
+    "app.py": "c48936b0de1f429dcdeb8a8e4e2becb827edff72f8cee2a9c4a8a485eee247eb",
     "modules/analytics.py": "e5e96f63a7bfdaf7754c64e59f5703e46ddd27472194790198a84ea6af3a3832",
     "modules/auth.py": "5a728c83c099975c540e845753c74253d112f65bc4b7076a3cea23d989a67f45",
-    "modules/config.py": "e4f113d01069bf98b74534a8f41acae97e8c11fc6fd93d07dcc132a272e4b2b8",
+    "modules/config.py": "db6929058166f8d3bd3ebefeb3bd59463405741e347efb489d256bb86b60d119",
     "modules/database.py": "a69070e550025c9b6f9fa44259726055fed343a4e77646fffd1ff466ab7f4442",
     "modules/departments.py": "b5b18702a465302be689007e0079b45478750a7daffa388ad695aebdb54d9203",
     "modules/employee.py": "b99734988b3c83d59c8214c75b9377aa13d7ae507e55797d75a48e4e8eede559",

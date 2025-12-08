@@ -1,14 +1,14 @@
 """
-生成员工数据
+生成测试员工数据
 """
 
-import sqlite3
-import random
 import csv
 from datetime import datetime, timedelta
 import hashlib
 import os
 from pathlib import Path
+import random
+import sqlite3
 import string
 import sys
 from typing import Dict, List, Tuple
@@ -265,7 +265,11 @@ def main():
     dept_count = insert_departments(conn, departments)
     emp_count = insert_employees(conn, employees)
 
-    csv_file = export_passwords_to_csv(passwords, str(project_root / "employee_passwords.csv"))
+    temp_folder = project_root / "temporary"
+    if not temp_folder.exists():
+        temp_folder.mkdir()
+
+    csv_file = export_passwords_to_csv(passwords, str(project_root / "temporary/employee.csv"))
 
     print(f"部门:{dept_count},员工:{emp_count},密码文件:{csv_file}")
 

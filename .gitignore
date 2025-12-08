@@ -15,3 +15,6 @@ config/weather_api.cfg
 
 # 数据库
 hotel.db
+
+# 临时文件
+temporary/employee.csv

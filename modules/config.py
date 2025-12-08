@@ -42,8 +42,8 @@ class Config:
             '前厅部': 'rooms, orders, customers',
             '客房部': 'rooms',
             '餐饮部': 'orders',
-            '财务部': 'orders, customers',
-            '人事部': ''
+            '财务部': 'orders, customers, analytics',
+            '人事部': 'employees'
         }
 
         try:
