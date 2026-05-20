@@ -131,32 +131,6 @@ hotel.db
 - `rooms`
 - `orders`
 
-数据库会在项目启动时自动初始化。`hotel.db` 属于本地运行数据，默认不提交到 Git。
-
-## 推荐仓库名
-
-当前仓库名 `python_class` 更像课程练习集合，不太能体现项目内容。更贴合的仓库名可以考虑：
-
-- `hotel-management-system`
-- `flask-hotel-management`
-- `hotel-admin-system`
-- `python-hotel-management`
-
-如果希望名字简洁、专业，推荐使用 `flask-hotel-management`。
-
-在 GitHub 修改仓库名：
-
-1. 进入仓库页面
-2. 点击 `Settings`
-3. 在 `Repository name` 中改为新名称
-4. 点击 `Rename`
-
-本地远端地址也需要同步更新：
-
-```bash
-git remote set-url origin https://github.com/yinyiqing/flask-hotel-management.git
-```
-
 ## 注意事项
 
 - 当前项目适合课程作业、学习和本地演示，不建议直接作为生产系统使用。
