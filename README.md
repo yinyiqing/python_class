@@ -160,5 +160,3 @@ git remote set-url origin https://github.com/yinyiqing/flask-hotel-management.gi
 ## 注意事项
 
 - 当前项目适合课程作业、学习和本地演示，不建议直接作为生产系统使用。
-- 默认管理员密码为明文配置，公开部署前需要改为更安全的密码存储方式。
-- `hotel.db`、运行时配置和虚拟环境文件不应提交到仓库。
