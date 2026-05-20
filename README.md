@@ -27,8 +27,8 @@
 ### 1. 克隆项目
 
 ```bash
-git clone https://github.com/yinyiqing/python_class.git
-cd python_class
+git clone https://github.com/yinyiqing/flask-hotel-management.git
+cd flask-hotel-management
 ```
 
 ### 2. 创建虚拟环境
@@ -76,7 +76,18 @@ http://127.0.0.1:5000
 密码：admin123
 ```
 
-登录后可以在系统中修改管理员密码。生产或公开演示前，请务必修改默认密码。
+该账号仅用于本地演示，首次登录后建议修改默认密码。
+
+## 主要页面
+
+- 登录页
+- 系统首页 / 仪表盘
+- 员工与部门管理
+- 客户管理
+- 客房管理
+- 订单管理
+- 数据统计
+- 天气查询
 
 ## 配置说明
 
@@ -89,6 +100,10 @@ config/weather_api.cfg
 ```
 
 这些文件包含管理员账号、部门权限和天气 API 配置，默认不会提交到 Git。天气功能需要在页面或配置文件中填写和风天气 API Host 与 Key。
+
+## 权限说明
+
+管理员可以访问全部功能。员工登录后会根据所属部门获得对应页面权限，例如前厅部可访问客房、订单和客户模块，人事部可访问员工模块。
 
 ## 目录结构
 
